@@ -201,4 +201,4 @@ else:
             for idx, socio in enumerate(datos["socios"]):
                 col_txt, col_btn = st.columns([4, 1])
                 with col_txt:
-                    nombre_nuevo = st.text_input(f"Socio {idx + 1}", value=socio,
+                    nombre_nuevo = st.text_input(f"Socio {idx + 1}", value=socio, key=f"input_socio_{idx}")
