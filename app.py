@@ -1,59 +1,53 @@
 import streamlit as st
 import json
-import os
-import pandas as pd
+import gspread
 from datetime import datetime, date, timedelta
-
-# Nombre del archivo de datos local
-ARCHIVO_LOCAL = "datos_barco.json"
 
 st.set_page_config(page_title="Gestión de Barco Compartido", page_icon="⚓", layout="centered")
 
-# --- FUNCIONES DE ALMACENAMIENTO LOCAL ---
-def cargar_datos_locales():
-    if not os.path.exists(ARCHIVO_LOCAL):
-        datos_iniciales = {
-            "horas_motor": 345,
-            "socios": ["Socio 1", "Socio 2", "Socio 3", "Socio 4", "Socio 5"],
-            "tareas": [
-                {"nombre": "Revisar prensaestopas", "hecha": False, "prioridad": "Alta"},
-                {"nombre": "Pintar la patente (Antifouling)", "hecha": False, "prioridad": "Media"}
-            ],
-            "mantenimientos_mixtos": [
-                {"elemento": "Aceite de Motor y Filtro", "intervalo_horas": 100, "ultima_vez_horas": 300, "intervalo_meses": 12, "ultima_vez_fecha": "2025-06-15"}
-            ],
-            "caducidades_puras": [
-                {"elemento": "Bengalas de seguridad", "fecha_caducidad": "2026-08-15"},
-                {"elemento": "Botiquín / Medicamentos", "fecha_caducidad": "2026-04-01"}
-            ],
-            "historial": [],
-            "checklist_salida": ["Niveles de aceite y refrigerante", "Sentina limpia y seca", "Grifos de fondo abiertos"],
-            "checklist_entrada": ["Grifos de fondo cerrados", "Baterías desconectadas", "Amarres duplicados"]
-        }
-        with open(ARCHIVO_LOCAL, "w", encoding="utf-8") as f:
-            json.dump(datos_iniciales, f, indent=4, ensure_ascii=False)
+# --- CONEXIÓN A GOOGLE SHEETS ---
+@st.cache_resource
+def conectar_google():
+    # Convertimos tus secretos TOML en algo que Google entienda
+    credenciales = dict(st.secrets["connections"]["gsheets"])
+    gc = gspread.service_account_from_dict(credenciales)
+    return gc.open("datos_barco_cloud")
+
+try:
+    sh = conectar_google()
+    wks = sh.worksheet("config")
+except Exception as e:
+    st.error(f"Error conectando a la hoja de cálculo: {e}")
+    st.stop()
+
+# --- FUNCIONES DE NUBE ---
+def cargar_datos_nube():
+    try:
+        # Intentamos leer la celda A1, donde guardaremos todo comprimido
+        datos_str = wks.acell("A1").value
+        if datos_str:
+            return json.loads(datos_str)
+    except Exception:
+        pass
+        
+    # Si la celda está vacía (la primera vez), leemos tu archivo original subido a GitHub
+    with open("datos_barco.json", "r", encoding="utf-8") as f:
+        datos_base = json.load(f)
     
-    with open(ARCHIVO_LOCAL, "r", encoding="utf-8") as f:
-        return json.load(f)
+    # Y lo subimos a Google Sheets para que ya se quede ahí para siempre
+    wks.update_acell("A1", json.dumps(datos_base, ensure_ascii=False))
+    return datos_base
 
-def guardar_datos_locales(datos):
-    with open(ARCHIVO_LOCAL, "w", encoding="utf-8") as f:
-        json.dump(datos, f, indent=4, ensure_ascii=False)
+def guardar_datos_nube(datos):
+    # Cada vez que haya un cambio, machacamos la celda A1 con los datos nuevos
+    wks.update_acell("A1", json.dumps(datos, ensure_ascii=False))
 
-# Cargar los datos del archivo
-datos = cargar_datos_locales()
-
-# Asegurar compatibilidad si el archivo JSON ya existía antes sin la lista de socios
-if "socios" not in datos or not datos["socios"]:
-    datos["socios"] = ["Socio 1", "Socio 2", "Socio 3", "Socio 4", "Socio 5"]
-    guardar_datos_locales(datos)
-
+datos = cargar_datos_nube()
 
 # --- CONTROL DE ACCESO (PANTALLA DE INICIO) ---
 if "usuario_actual" not in st.session_state:
     st.session_state["usuario_actual"] = None
 
-# SI NO HAY SOCIO IDENTIFICADO: Mostrar pantalla de acceso limpia
 if st.session_state["usuario_actual"] is None:
     st.title("⚓ DRAGO - Control de Acceso")
     st.markdown("---")
@@ -65,11 +59,10 @@ if st.session_state["usuario_actual"] is None:
         st.session_state["usuario_actual"] = usuario_seleccionado
         st.rerun()
 
-# SI YA HAY UN SOCIO IDENTIFICADO: Mostrar la aplicación completa
+# SI YA HAY UN SOCIO IDENTIFICADO:
 else:
     usuario_actual = st.session_state["usuario_actual"]
     
-    # Información en la barra lateral e indicador para salir
     st.sidebar.title("⚓ DRAGO")
     st.sidebar.markdown(f"👤 Socio activo: **{usuario_actual}**")
     if st.sidebar.button("🚪 Cerrar Sesión / Cambiar de Socio"):
@@ -77,7 +70,6 @@ else:
         st.rerun()
     st.sidebar.markdown("---")
     
-    # Interfaz principal de la aplicación
     st.title("⚓ DRAGO - Gestión de Navegación")
     
     hoy = date.today()
@@ -85,7 +77,6 @@ else:
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Cuadro de Mandos", "📋 Tareas", "📝 Checklists", "📜 Historial", "⚙️ Panel de Control"])
     
-    # PESTAÑA 1: CUADRO DE MANDOS
     with tab1:
         st.header("⏱️ Estado del Motor")
         st.metric(label="Horas Actuales", value=f"{horas_actuales} hrs")
@@ -111,7 +102,7 @@ else:
                     datos["mantenimientos_mixtos"][i]["ultima_vez_horas"] = horas_actuales
                     datos["mantenimientos_mixtos"][i]["ultima_vez_fecha"] = hoy.strftime("%Y-%m-%d")
                     datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"Mantenimiento: {maint['elemento']}", "horas": horas_actuales})
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
     
         st.subheader("📅 Caducidades de Seguridad")
@@ -127,10 +118,9 @@ else:
                 if st.button("🔄 Renovado", key=f"btn_cad_{i}"):
                     datos["caducidades_puras"][i]["fecha_caducidad"] = (hoy + timedelta(days=730)).strftime("%Y-%m-%d")
                     datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"Renovado: {item['elemento']}", "horas": horas_actuales})
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
     
-    # PESTAÑA 2: LISTA DE TAREAS
     with tab2:
         st.header("📋 Tareas de Bricolaje / Reparaciones")
         hubo_cambios = False
@@ -144,10 +134,9 @@ else:
                         datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"Reparación: {tarea['nombre']}", "horas": horas_actuales})
                         hubo_cambios = True
         if hubo_cambios:
-            guardar_datos_locales(datos)
+            guardar_datos_nube(datos)
             st.rerun()
     
-    # PESTAÑA 3: CHECKLISTS
     with tab3:
         st.header("📝 Listas de Verificación de Seguridad")
         chk_salida, chk_entrada = st.columns(2)
@@ -160,7 +149,6 @@ else:
             for k, elemento_e in enumerate(datos["checklist_entrada"]):
                 st.checkbox(elemento_e, key=f"check_live_e_{k}")
     
-    # PESTAÑA 4: HISTORIAL DE EVENTOS
     with tab4:
         st.header("📜 Historial de Operaciones")
         for registro in reversed(datos["historial"]):
@@ -168,13 +156,10 @@ else:
             usuario_reg = registro.get("usuario", "Socio Desconocido")
             evento_reg = registro.get("evento", "Evento sin detallar")
             horas_reg = registro.get("horas", "---")
-            
             st.markdown(f"**[{fecha_reg}]** - 👤 *{usuario_reg}*: **{evento_reg}** ({horas_reg} hrs)")
             st.markdown("---")
     
-    # PESTAÑA 5: PANEL DE CONTROL
     with tab5:
-        # 1. ACTUALIZAR HORAS
         st.header("⚙️ Registrar Salida (Actualizar horas)")
         st.write(f"Socio registrando la navegación: **{usuario_actual}**")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
@@ -182,13 +167,12 @@ else:
             if horas_input > horas_actuales:
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"Navegación: +{horas_input - horas_actuales} horas", "horas": horas_input})
             datos["horas_motor"] = horas_input
-            guardar_datos_locales(datos)
+            guardar_datos_nube(datos)
             st.success("¡Horas actualizadas!")
             st.rerun()
             
         st.markdown("---")
         
-        # 2. GESTIÓN DE SOCIOS
         st.header("👥 Gestión de la Tripulación")
         with st.expander("⚙️ Configuración: Personalizar nombres de los socios"):
             st.write("Modifica los nombres existentes, añade nuevos miembros o elimínalos:")
@@ -203,7 +187,7 @@ else:
                     st.write("") 
                     if st.button("🗑️", key=f"btn_del_socio_{idx}"):
                         datos["socios"].pop(idx)
-                        guardar_datos_locales(datos)
+                        guardar_datos_nube(datos)
                         if socio == usuario_actual:
                             st.session_state["usuario_actual"] = None
                         st.rerun()
@@ -214,7 +198,7 @@ else:
                     st.session_state["usuario_actual"] = lista_editada[idx_actual]
                 
                 datos["socios"] = lista_editada
-                guardar_datos_locales(datos)
+                guardar_datos_nube(datos)
                 st.rerun()
                 
             st.markdown("---")
@@ -223,12 +207,11 @@ else:
             if st.button("Guardar nuevo socio"):
                 if nuevo_socio_nombre.strip() and nuevo_socio_nombre.strip() not in datos["socios"]:
                     datos["socios"].append(nuevo_socio_nombre.strip())
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
-
+        
         st.markdown("---")
         
-        # 3. AÑADIR TAREAS Y MANTENIMIENTOS
         st.header("➕ Añadir Nuevos Controles")
         with st.expander("🛠️ Añadir Nueva Reparación Pendiente"):
             nueva_tarea = st.text_input("Descripción de la reparación:", key="input_add_tarea")
@@ -236,7 +219,7 @@ else:
             if st.button("Añadir Tarea", key="btn_add_tarea"):
                 if nueva_tarea:
                     datos["tareas"].append({"nombre": nueva_tarea, "hecha": False, "prioridad": prioridad_tarea})
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
 
         with st.expander("📅 Añadir Elemento con Caducidad"):
@@ -245,7 +228,7 @@ else:
             if st.button("Añadir Caducidad", key="btn_add_cad"):
                 if nuevo_elemento:
                     datos["caducidades_puras"].append({"elemento": nuevo_elemento, "fecha_caducidad": fecha_input.strftime("%Y-%m-%d")})
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
 
         with st.expander("🔧 Añadir Mantenimiento Mixto (Por horas y fecha)"):
@@ -255,19 +238,18 @@ else:
             if st.button("Guardar Mantenimiento", key="btn_add_mixto"):
                 if nombre_maint:
                     datos["mantenimientos_mixtos"].append({"elemento": nombre_maint, "intervalo_horas": int_h, "ultima_vez_horas": horas_actuales, "intervalo_meses": int_m, "ultima_vez_fecha": hoy.strftime("%Y-%m-%d")})
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
 
         st.markdown("---")
         
-        # 4. EDITAR CHECKLISTS
         st.header("📝 Editar Listas de Verificación (Checklists)")
         with st.expander("🛫 Gestionar Lista: Antes de Zarpar"):
             item_salida_nuevo = st.text_input("Añadir nueva verificación para la salida:", key="in_add_chk_s")
             if st.button("➕ Añadir a Salida", key="btn_add_chk_s"):
                 if item_salida_nuevo and item_salida_nuevo not in datos["checklist_salida"]:
                     datos["checklist_salida"].append(item_salida_nuevo)
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
             st.write("**Elementos actuales:**")
             for idx, item in enumerate(datos["checklist_salida"]):
@@ -275,7 +257,7 @@ else:
                 c_item.write(f"• {item}")
                 if c_btn.button("🗑️", key=f"del_s_{idx}"):
                     datos["checklist_salida"].pop(idx)
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
 
         with st.expander("🛬 Gestionar Lista: Al Llegar a Puerto"):
@@ -283,7 +265,7 @@ else:
             if st.button("➕ Añadir a Puerto", key="btn_add_chk_e"):
                 if item_entrada_nuevo and item_entrada_nuevo not in datos["checklist_entrada"]:
                     datos["checklist_entrada"].append(item_entrada_nuevo)
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
             st.write("**Elementos actuales:**")
             for idx, item in enumerate(datos["checklist_entrada"]):
@@ -291,5 +273,5 @@ else:
                 c_item.write(f"• {item}")
                 if c_btn.button("🗑️", key=f"del_e_{idx}"):
                     datos["checklist_entrada"].pop(idx)
-                    guardar_datos_locales(datos)
+                    guardar_datos_nube(datos)
                     st.rerun()
