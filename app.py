@@ -148,7 +148,6 @@ else:
             if st.button("✅ Registrar Salida en Historial", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "Completado: Checklist Antes de Zarpar", "horas": horas_actuales})
                 guardar_datos_nube(datos)
-                # Limpiamos los checks para el siguiente usuario
                 for j in range(len(datos["checklist_salida"])):
                     st.session_state[f"check_live_s_{j}"] = False
                 st.success("¡Salida registrada!")
@@ -163,7 +162,6 @@ else:
             if st.button("✅ Registrar Llegada en Historial", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "Completado: Checklist Al Llegar a Puerto", "horas": horas_actuales})
                 guardar_datos_nube(datos)
-                # Limpiamos los checks para el siguiente usuario
                 for k in range(len(datos["checklist_entrada"])):
                     st.session_state[f"check_live_e_{k}"] = False
                 st.success("¡Llegada registrada!")
@@ -202,3 +200,134 @@ else:
                 col_txt, col_btn = st.columns([4, 1])
                 with col_txt:
                     nombre_nuevo = st.text_input(f"Socio {idx + 1}", value=socio, key=f"input_socio_{idx}")
+                    if nombre_nuevo.strip():
+                        lista_editada.append(nombre_nuevo.strip())
+                with col_btn:
+                    st.write("") 
+                    if st.button("🗑️", key=f"btn_del_socio_{idx}"):
+                        datos["socios"].pop(idx)
+                        guardar_datos_nube(datos)
+                        if socio == usuario_actual:
+                            st.session_state["usuario_actual"] = None
+                        st.rerun()
+            
+            if lista_editada != datos["socios"] and len(lista_editada) == len(datos["socios"]):
+                if usuario_actual in datos["socios"]:
+                    idx_actual = datos["socios"].index(usuario_actual)
+                    st.session_state["usuario_actual"] = lista_editada[idx_actual]
+                datos["socios"] = lista_editada
+                guardar_datos_nube(datos)
+                st.rerun()
+                
+            st.markdown("---")
+            st.write("**➕ Añadir un nuevo socio a la lista:**")
+            nuevo_socio_nombre = st.text_input("Nombre del nuevo miembro:")
+            if st.button("Guardar nuevo socio"):
+                if nuevo_socio_nombre.strip() and nuevo_socio_nombre.strip() not in datos["socios"]:
+                    datos["socios"].append(nuevo_socio_nombre.strip())
+                    guardar_datos_nube(datos)
+                    st.rerun()
+        
+        st.markdown("---")
+        
+        st.header("➕ Gestión de Controles (Añadir / Eliminar)")
+        
+        # GESTIÓN DE TAREAS
+        with st.expander("🛠️ Gestionar Tareas y Reparaciones"):
+            st.write("**Añadir nueva tarea:**")
+            nueva_tarea = st.text_input("Descripción de la reparación:", key="input_add_tarea")
+            prioridad_tarea = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"], key="select_add_tarea")
+            if st.button("➕ Añadir Tarea", key="btn_add_tarea"):
+                if nueva_tarea:
+                    datos["tareas"].append({"nombre": nueva_tarea, "hecha": False, "prioridad": prioridad_tarea})
+                    guardar_datos_nube(datos)
+                    st.rerun()
+            
+            st.markdown("---")
+            st.write("**Tareas actuales:**")
+            for idx, tarea in enumerate(datos["tareas"]):
+                c_t, c_b = st.columns([4, 1])
+                estado = "✅ Hecha" if tarea["hecha"] else "⏳ Pendiente"
+                c_t.write(f"• {tarea['nombre']} [{tarea['prioridad']}] - {estado}")
+                if c_b.button("🗑️", key=f"del_tar_pan_{idx}"):
+                    datos["tareas"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+
+        # GESTIÓN DE CADUCIDADES
+        with st.expander("📅 Gestionar Caducidades de Seguridad"):
+            st.write("**Añadir nueva caducidad:**")
+            nuevo_elemento = st.text_input("Nombre del elemento de seguridad:", key="input_add_cad")
+            fecha_input = st.date_input("Fecha de caducidad:", value=date.today(), key="date_add_cad")
+            if st.button("➕ Añadir Caducidad", key="btn_add_cad"):
+                if nuevo_elemento:
+                    datos["caducidades_puras"].append({"elemento": nuevo_elemento, "fecha_caducidad": fecha_input.strftime("%Y-%m-%d")})
+                    guardar_datos_nube(datos)
+                    st.rerun()
+            
+            st.markdown("---")
+            st.write("**Caducidades actuales:**")
+            for idx, item in enumerate(datos["caducidades_puras"]):
+                c_c, c_b = st.columns([4, 1])
+                c_c.write(f"• {item['elemento']} (Caduca: {item['fecha_caducidad']})")
+                if c_b.button("🗑️", key=f"del_cad_pan_{idx}"):
+                    datos["caducidades_puras"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+
+        # GESTIÓN DE MANTENIMIENTOS
+        with st.expander("🔧 Gestionar Mantenimientos Críticos"):
+            st.write("**Añadir nuevo mantenimiento:**")
+            nombre_maint = st.text_input("Nombre del mantenimiento crítico:", key="input_add_mixto")
+            int_h = st.number_input("¿Cada cuántas horas?:", value=100, key="num_add_mixto_h")
+            int_m = st.number_input("¿Cada cuántos meses?:", value=12, key="num_add_mixto_m")
+            if st.button("➕ Guardar Mantenimiento", key="btn_add_mixto"):
+                if nombre_maint:
+                    datos["mantenimientos_mixtos"].append({"elemento": nombre_maint, "intervalo_horas": int_h, "ultima_vez_horas": horas_actuales, "intervalo_meses": int_m, "ultima_vez_fecha": hoy.strftime("%Y-%m-%d")})
+                    guardar_datos_nube(datos)
+                    st.rerun()
+            
+            st.markdown("---")
+            st.write("**Mantenimientos actuales:**")
+            for idx, maint in enumerate(datos["mantenimientos_mixtos"]):
+                c_m, c_b = st.columns([4, 1])
+                c_m.write(f"• {maint['elemento']} (Cada {maint['intervalo_horas']}h o {maint['intervalo_meses']} meses)")
+                if c_b.button("🗑️", key=f"del_maint_pan_{idx}"):
+                    datos["mantenimientos_mixtos"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+
+        st.markdown("---")
+        
+        st.header("📝 Editar Listas de Verificación (Checklists)")
+        with st.expander("🛫 Gestionar Lista: Antes de Zarpar"):
+            item_salida_nuevo = st.text_input("Añadir nueva verificación para la salida:", key="in_add_chk_s")
+            if st.button("➕ Añadir a Salida", key="btn_add_chk_s"):
+                if item_salida_nuevo and item_salida_nuevo not in datos["checklist_salida"]:
+                    datos["checklist_salida"].append(item_salida_nuevo)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+            st.write("**Elementos actuales:**")
+            for idx, item in enumerate(datos["checklist_salida"]):
+                c_item, c_btn = st.columns([4, 1])
+                c_item.write(f"• {item}")
+                if c_btn.button("🗑️", key=f"del_s_{idx}"):
+                    datos["checklist_salida"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+
+        with st.expander("🛬 Gestionar Lista: Al Llegar a Puerto"):
+            item_entrada_nuevo = st.text_input("Añadir nueva verificación para el puerto:", key="in_add_chk_e")
+            if st.button("➕ Añadir a Puerto", key="btn_add_chk_e"):
+                if item_entrada_nuevo and item_entrada_nuevo not in datos["checklist_entrada"]:
+                    datos["checklist_entrada"].append(item_entrada_nuevo)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+            st.write("**Elementos actuales:**")
+            for idx, item in enumerate(datos["checklist_entrada"]):
+                c_item, c_btn = st.columns([4, 1])
+                c_item.write(f"• {item}")
+                if c_btn.button("🗑️", key=f"del_e_{idx}"):
+                    datos["checklist_entrada"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
