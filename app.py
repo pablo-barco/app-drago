@@ -85,6 +85,7 @@ else:
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Historial", "⚙️ Panel"])
     
+    # PESTAÑA 1: CUADRO DE MANDOS CON FECHAS DETALLADAS
     with tab1:
         st.header("⏱️ Estado del Motor")
         st.metric(label="Horas Actuales", value=f"{horas_actuales} hrs")
@@ -93,17 +94,29 @@ else:
         for i, maint in enumerate(datos["mantenimientos_mixtos"]):
             horas_desde_ultimo = horas_actuales - maint["ultima_vez_horas"]
             horas_restantes = maint["intervalo_horas"] - horas_desde_ultimo
+            
             fecha_ultima = datetime.strptime(maint["ultima_vez_fecha"], "%Y-%m-%d").date()
             fecha_vencimiento = fecha_ultima + timedelta(days=maint["intervalo_meses"] * 30)
             dias_restantes = (fecha_vencimiento - hoy).days
+            
             vence = (horas_restantes <= 0) or (dias_restantes <= 0)
             proximo = (0 < horas_restantes <= 15) or (0 < dias_restantes <= 30)
+            
+            # Formateamos la fecha para que se lea más bonita (DD/MM/AAAA)
+            fecha_ver = fecha_vencimiento.strftime("%d/%m/%Y")
     
             col_texto, col_boton = st.columns([3, 2]) 
             with col_texto:
-                if vence: st.error(f"🔴 **{maint['elemento']}**: VENCIDO!")
-                elif proximo: st.warning(f"🟡 **{maint['elemento']}**: Próximo.")
-                else: st.success(f"🟢 **{maint['elemento']}**: OK.")
+                # Mostramos el estado y justo debajo la fecha de vencimiento y horas restantes
+                if vence: 
+                    st.error(f"🔴 **{maint['elemento']}**: VENCIDO")
+                elif proximo: 
+                    st.warning(f"🟡 **{maint['elemento']}**: Próximo a vencer")
+                else: 
+                    st.success(f"🟢 **{maint['elemento']}**: Al día")
+                
+                st.caption(f"📅 Toca el: **{fecha_ver}** (o a las **{maint['ultima_vez_horas'] + maint['intervalo_horas']} hrs**)")
+                
             with col_boton:
                 if st.session_state.get(f"conf_maint_{i}", False):
                     st.warning("¿Seguro?")
@@ -123,16 +136,27 @@ else:
                     if st.button("🛠️ Hecho", key=f"btn_maint_{i}"):
                         st.session_state[f"conf_maint_{i}"] = True
                         st.rerun()
+            st.markdown("---") # Línea divisoria fina entre elementos
     
         st.header("📅 Caducidades de Seguridad")
         for i, item in enumerate(datos["caducidades_puras"]):
             fecha_cad = datetime.strptime(item["fecha_caducidad"], "%Y-%m-%d").date()
             dias_pure = (fecha_cad - hoy).days
+            
+            # Formateamos la fecha de caducidad para que se lea bonita (DD/MM/AAAA)
+            fecha_cad_ver = fecha_cad.strftime("%d/%m/%Y")
+            
             col_txt, col_btn = st.columns([3, 2])
             with col_txt:
-                if dias_pure < 0: st.error(f"🔴 **{item['elemento']}**: CADUCADO!")
-                elif dias_pure <= 30: st.warning(f"🟡 **{item['elemento']}**: Caduca pronto.")
-                else: st.success(f"🟢 **{item['elemento']}**: OK.")
+                if dias_pure < 0: 
+                    st.error(f"🔴 **{item['elemento']}**: ¡CADUCADO!")
+                elif dias_pure <= 30: 
+                    st.warning(f"🟡 **{item['elemento']}**: Caduca pronto")
+                else: 
+                    st.success(f"🟢 **{item['elemento']}**: OK")
+                
+                st.caption(f"📅 Caducidad: **{fecha_cad_ver}** (Faltan {max(0, dias_pure)} días)")
+                
             with col_btn:
                 if st.session_state.get(f"conf_cad_{i}", False):
                     st.warning("¿Seguro?")
@@ -151,6 +175,7 @@ else:
                     if st.button("🔄 Renovado", key=f"btn_cad_{i}"):
                         st.session_state[f"conf_cad_{i}"] = True
                         st.rerun()
+            st.markdown("---")
     
     with tab2:
         st.header("📋 Tareas de Bricolaje")
