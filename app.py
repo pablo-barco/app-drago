@@ -45,9 +45,9 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
-# --- INYECCIÓN DEL HISTÓRICO 2025 ---
-if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) == 0:
-    st.info("Inyectando datos de 2025...")
+# --- INYECCIÓN DEL HISTÓRICO COMPLETO 2025 - 2026 ---
+if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) <= 1:
+    st.info("Inyectando histórico de cuentas de 2025 y 2026...")
     datos["finanzas_ingresos"] = [
         {"fecha": "2025-01-01", "socio": "Fondo Inicial 2024", "cantidad": 1304.16},
         {"fecha": "2025-01-03", "socio": "Leandro", "cantidad": 100.0},
@@ -95,7 +95,22 @@ if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) == 0:
         {"fecha": "2025-11-11", "socio": "Juan Carlos", "cantidad": 100.0},
         {"fecha": "2025-12-02", "socio": "Leandro", "cantidad": 100.0},
         {"fecha": "2025-12-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-12-11", "socio": "Juan Carlos", "cantidad": 100.0}
+        {"fecha": "2025-12-11", "socio": "Juan Carlos", "cantidad": 100.0},
+        # Registros 2026
+        {"fecha": "2026-01-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-01-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2026-01-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2026-02-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-02-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2026-02-11", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2026-03-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-03-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2026-03-11", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2026-04-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-04-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2026-04-13", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2026-04-05", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-04-05", "socio": "Pablo", "cantidad": 100.0}
     ]
     datos["finanzas_gastos"] = [
         {"fecha": "2025-02-23", "concepto": "Tela camarote", "cantidad": 55.96, "pagado_por": "Fondo Común"},
@@ -115,10 +130,14 @@ if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) == 0:
         {"fecha": "2025-09-03", "concepto": "Foco mastil", "cantidad": 40.85, "pagado_por": "Fondo Común"},
         {"fecha": "2025-09-04", "concepto": "Licencia pesca", "cantidad": 41.86, "pagado_por": "Fondo Común"},
         {"fecha": "2025-09-19", "concepto": "Escota genova y amantillo", "cantidad": 136.85, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-11-10", "concepto": "Varadero amarre", "cantidad": 4533.72, "pagado_por": "Fondo Común"}
+        {"fecha": "2025-11-10", "concepto": "Varadero amarre", "cantidad": 4533.72, "pagado_por": "Fondo Común"},
+        # Registros 2026
+        {"fecha": "2026-03-04", "concepto": "Francobordo bandera, poleas", "cantidad": 92.87, "pagado_por": "Fondo Común"},
+        {"fecha": "2026-04-06", "concepto": "Gasoil", "cantidad": 35.00, "pagado_por": "Fondo Común"},
+        {"fecha": "2026-04-08", "concepto": "Seguro", "cantidad": 255.57, "pagado_por": "Fondo Común"}
     ]
     guardar_datos_nube(datos)
-# ----------------------------------------
+# -----------------------------------------------------
 
 # PARCHE DE ACTUALIZACIÓN V2.0: Añadimos las variables de finanzas si no existen en la nube
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
