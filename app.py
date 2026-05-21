@@ -45,6 +45,10 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
+# PARCHE DE ACTUALIZACIÓN V2.0: Añadimos las variables de finanzas si no existen en la nube
+if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
+if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
+
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
     st.session_state["usuario_actual"] = None
@@ -83,9 +87,9 @@ else:
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Historial", "⚙️ Panel"])
+    # NUEVA PESTAÑA AÑADIDA PARA CUENTAS
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"])
     
-    # PESTAÑA 1: CUADRO DE MANDOS CON FECHAS LÍMITE AJUSTABLES
     with tab1:
         st.header("⏱️ Estado del Motor")
         st.metric(label="Horas Actuales", value=f"{horas_actuales} hrs")
@@ -95,7 +99,6 @@ else:
             horas_desde_ultimo = horas_actuales - maint["ultima_vez_horas"]
             horas_restantes = maint["intervalo_horas"] - horas_desde_ultimo
             
-            # CONTROL COMPATIBLE: Si ya tiene fecha límite guardada se usa, si no, se calcula la antigua
             if "proxima_fecha" in maint:
                 fecha_vencimiento = datetime.strptime(maint["proxima_fecha"], "%Y-%m-%d").date()
             else:
@@ -122,8 +125,6 @@ else:
             with col_boton:
                 if st.session_state.get(f"conf_maint_{i}", False):
                     st.warning("¿Seguro?")
-                    
-                    # PROPUESTA AUTOMÁTICA: Sugiere hoy + los meses configurados, pero deja cambiarla
                     fecha_sugerida = hoy + timedelta(days=maint["intervalo_meses"] * 30)
                     nueva_limite = st.date_input("Ajustar próxima fecha límite:", value=fecha_sugerida, key=f"next_date_maint_{i}")
                     
@@ -236,8 +237,112 @@ else:
         for registro in reversed(datos["historial"]):
             st.markdown(f"**[{registro.get('fecha')}]** - *{registro.get('usuario')}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
             st.markdown("---")
-    
+            
+    # --- NUEVA PESTAÑA 5: FINANZAS ---
     with tab5:
+        st.header("💶 Estado de Cuentas")
+
+        # Cálculos Matemáticos
+        gastos_totales = sum(g["cantidad"] for g in datos["finanzas_gastos"])
+        ingresos_totales = sum(i["cantidad"] for i in datos["finanzas_ingresos"])
+        gastos_bote = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == "Fondo Común")
+
+        saldo_bote = ingresos_totales - gastos_bote
+        num_socios = len(datos["socios"])
+        gasto_por_socio = gastos_totales / num_socios if num_socios > 0 else 0
+
+        # Tarjeta principal
+        st.metric("💰 Dinero actual en el Bote Común", f"{saldo_bote:.2f} €")
+        st.caption(f"Gasto total histórico del barco: **{gastos_totales:.2f} €** | Gasto teórico por socio: **{gasto_por_socio:.2f} €**")
+
+        st.markdown("---")
+        st.subheader("⚖️ Balance de Socios (Compensación)")
+        st.write("*(En verde: el barco le debe dinero. En rojo: debe dinero al barco)*")
+
+        for socio in datos["socios"]:
+            # Sumamos lo que el socio ingresó al bote + lo que pagó directamente de su bolsillo
+            aportado_bote = sum(i["cantidad"] for i in datos["finanzas_ingresos"] if i["socio"] == socio)
+            pagado_directo = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == socio)
+            total_aportado = aportado_bote + pagado_directo
+            
+            balance = total_aportado - gasto_por_socio
+
+            col_socio, col_bal = st.columns([3, 1])
+            with col_socio:
+                st.write(f"**{socio}** (Aportó en total: {total_aportado:.2f}€)")
+            with col_bal:
+                if balance > 0.01:
+                    st.success(f"+{balance:.2f}€")
+                elif balance < -0.01:
+                    st.error(f"{balance:.2f}€")
+                else:
+                    st.info("0.00€")
+
+        st.markdown("---")
+        
+        col_g, col_i = st.columns(2)
+        with col_g:
+            with st.expander("💸 Registrar Gasto"):
+                concepto_g = st.text_input("Concepto (ej. Aceite motor):")
+                cantidad_g = st.number_input("Importe (€):", min_value=0.0, step=1.0)
+                pagador_opciones = ["Fondo Común"] + datos["socios"]
+                pagado_por = st.selectbox("¿Quién lo pagó?:", pagador_opciones)
+                
+                if st.button("Guardar Gasto"):
+                    if concepto_g and cantidad_g > 0:
+                        datos["finanzas_gastos"].append({
+                            "fecha": hoy.strftime("%Y-%m-%d"),
+                            "concepto": concepto_g,
+                            "cantidad": float(cantidad_g),
+                            "pagado_por": pagado_por
+                        })
+                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"💸 Gasto: {concepto_g} ({cantidad_g}€ - pagado por {pagado_por})", "horas": horas_actuales})
+                        guardar_datos_nube(datos)
+                        st.session_state["toast_msg"] = {"texto": "Gasto registrado con éxito.", "icono": "💸"}
+                        st.rerun()
+
+        with col_i:
+            with st.expander("📥 Aportación al Bote"):
+                socio_i = st.selectbox("Socio que ingresa dinero:", datos["socios"])
+                cantidad_i = st.number_input("Cantidad (€):", min_value=0.0, step=1.0, key="cant_i")
+                
+                if st.button("Guardar Ingreso"):
+                    if cantidad_i > 0:
+                        datos["finanzas_ingresos"].append({
+                            "fecha": hoy.strftime("%Y-%m-%d"),
+                            "socio": socio_i,
+                            "cantidad": float(cantidad_i)
+                        })
+                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso al bote de {socio_i} ({cantidad_i}€)", "horas": horas_actuales})
+                        guardar_datos_nube(datos)
+                        st.session_state["toast_msg"] = {"texto": "Ingreso registrado con éxito.", "icono": "📥"}
+                        st.rerun()
+
+        st.markdown("---")
+        with st.expander("📜 Ver y Borrar Historial de Cuentas"):
+            st.write("🔴 **Gastos Registrados:**")
+            for idx, g in enumerate(datos["finanzas_gastos"]):
+                cg1, cg2 = st.columns([4, 1])
+                cg1.write(f"_{g['fecha']}_ - {g['concepto']}: **{g['cantidad']}€** ({g['pagado_por']})")
+                if cg2.button("🗑️", key=f"del_g_{idx}"):
+                    datos["finanzas_gastos"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "Gasto eliminado.", "icono": "🗑️"}
+                    st.rerun()
+            
+            st.write("---")
+            st.write("🟢 **Aportaciones al Bote Registradas:**")
+            for idx, i in enumerate(datos["finanzas_ingresos"]):
+                ci1, ci2 = st.columns([4, 1])
+                ci1.write(f"_{i['fecha']}_ - {i['socio']}: **{i['cantidad']}€**")
+                if ci2.button("🗑️", key=f"del_i_{idx}"):
+                    datos["finanzas_ingresos"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "Ingreso eliminado.", "icono": "🗑️"}
+                    st.rerun()
+    
+    # --- PESTAÑA 6: PANEL DE CONTROL ---
+    with tab6:
         st.header("⚙️ Final de Navegación")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
         if st.button("Actualizar Horas y Guardar"):
@@ -293,7 +398,6 @@ else:
             nm = st.text_input("Mantenimiento:", key="in_maint")
             ih = st.number_input("Horas:", value=100, key="nu_h")
             im = st.number_input("Meses:", value=12, key="nu_m")
-            # NUEVO: Selector para decidir la primera fecha límite del nuevo mantenimiento
             fl_inicial = st.date_input("Primera fecha límite tope:", value=date.today() + timedelta(days=365), key="nu_fl")
             if st.button("Guardar", key="bt_maint"):
                 if nm:
