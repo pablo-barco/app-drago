@@ -85,7 +85,7 @@ else:
     
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Historial", "⚙️ Panel"])
     
-    # PESTAÑA 1: CUADRO DE MANDOS CON FECHAS DETALLADAS
+    # PESTAÑA 1: CUADRO DE MANDOS CON FECHAS LÍMITE AJUSTABLES
     with tab1:
         st.header("⏱️ Estado del Motor")
         st.metric(label="Horas Actuales", value=f"{horas_actuales} hrs")
@@ -95,19 +95,21 @@ else:
             horas_desde_ultimo = horas_actuales - maint["ultima_vez_horas"]
             horas_restantes = maint["intervalo_horas"] - horas_desde_ultimo
             
-            fecha_ultima = datetime.strptime(maint["ultima_vez_fecha"], "%Y-%m-%d").date()
-            fecha_vencimiento = fecha_ultima + timedelta(days=maint["intervalo_meses"] * 30)
-            dias_restantes = (fecha_vencimiento - hoy).days
+            # CONTROL COMPATIBLE: Si ya tiene fecha límite guardada se usa, si no, se calcula la antigua
+            if "proxima_fecha" in maint:
+                fecha_vencimiento = datetime.strptime(maint["proxima_fecha"], "%Y-%m-%d").date()
+            else:
+                fecha_ultima = datetime.strptime(maint["ultima_vez_fecha"], "%Y-%m-%d").date()
+                fecha_vencimiento = fecha_ultima + timedelta(days=maint["intervalo_meses"] * 30)
             
+            dias_restantes = (fecha_vencimiento - hoy).days
             vence = (horas_restantes <= 0) or (dias_restantes <= 0)
             proximo = (0 < horas_restantes <= 15) or (0 < dias_restantes <= 30)
             
-            # Formateamos la fecha para que se lea más bonita (DD/MM/AAAA)
             fecha_ver = fecha_vencimiento.strftime("%d/%m/%Y")
     
             col_texto, col_boton = st.columns([3, 2]) 
             with col_texto:
-                # Mostramos el estado y justo debajo la fecha de vencimiento y horas restantes
                 if vence: 
                     st.error(f"🔴 **{maint['elemento']}**: VENCIDO")
                 elif proximo: 
@@ -115,19 +117,24 @@ else:
                 else: 
                     st.success(f"🟢 **{maint['elemento']}**: Al día")
                 
-                st.caption(f"📅 Toca el: **{fecha_ver}** (o a las **{maint['ultima_vez_horas'] + maint['intervalo_horas']} hrs**)")
+                st.caption(f"📅 Fecha límite: **{fecha_ver}** (o a las **{maint['ultima_vez_horas'] + maint['intervalo_horas']} hrs**)")
                 
             with col_boton:
                 if st.session_state.get(f"conf_maint_{i}", False):
                     st.warning("¿Seguro?")
+                    
+                    # PROPUESTA AUTOMÁTICA: Sugiere hoy + los meses configurados, pero deja cambiarla
+                    fecha_sugerida = hoy + timedelta(days=maint["intervalo_meses"] * 30)
+                    nueva_limite = st.date_input("Ajustar próxima fecha límite:", value=fecha_sugerida, key=f"next_date_maint_{i}")
+                    
                     c_y, c_n = st.columns(2)
                     if c_y.button("✔️ Sí", key=f"y_maint_{i}"):
                         datos["mantenimientos_mixtos"][i]["ultima_vez_horas"] = horas_actuales
                         datos["mantenimientos_mixtos"][i]["ultima_vez_fecha"] = hoy.strftime("%Y-%m-%d")
-                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"🛠️ Hecho: {maint['elemento']}", "horas": horas_actuales})
+                        datos["mantenimientos_mixtos"][i]["proxima_fecha"] = nueva_limite.strftime("%Y-%m-%d")
                         guardar_datos_nube(datos)
                         st.session_state[f"conf_maint_{i}"] = False
-                        st.session_state["toast_msg"] = {"texto": "Mantenimiento registrado y reiniciado.", "icono": "🛠️"}
+                        st.session_state["toast_msg"] = {"texto": "Mantenimiento registrado con nueva fecha límite.", "icono": "🛠️"}
                         st.rerun()
                     if c_n.button("❌ No", key=f"n_maint_{i}"):
                         st.session_state[f"conf_maint_{i}"] = False
@@ -136,14 +143,12 @@ else:
                     if st.button("🛠️ Hecho", key=f"btn_maint_{i}"):
                         st.session_state[f"conf_maint_{i}"] = True
                         st.rerun()
-            st.markdown("---") # Línea divisoria fina entre elementos
+            st.markdown("---")
     
         st.header("📅 Caducidades de Seguridad")
         for i, item in enumerate(datos["caducidades_puras"]):
             fecha_cad = datetime.strptime(item["fecha_caducidad"], "%Y-%m-%d").date()
             dias_pure = (fecha_cad - hoy).days
-            
-            # Formateamos la fecha de caducidad para que se lea bonita (DD/MM/AAAA)
             fecha_cad_ver = fecha_cad.strftime("%d/%m/%Y")
             
             col_txt, col_btn = st.columns([3, 2])
@@ -288,9 +293,18 @@ else:
             nm = st.text_input("Mantenimiento:", key="in_maint")
             ih = st.number_input("Horas:", value=100, key="nu_h")
             im = st.number_input("Meses:", value=12, key="nu_m")
+            # NUEVO: Selector para decidir la primera fecha límite del nuevo mantenimiento
+            fl_inicial = st.date_input("Primera fecha límite tope:", value=date.today() + timedelta(days=365), key="nu_fl")
             if st.button("Guardar", key="bt_maint"):
                 if nm:
-                    datos["mantenimientos_mixtos"].append({"elemento": nm, "intervalo_horas": ih, "ultima_vez_horas": horas_actuales, "intervalo_meses": im, "ultima_vez_fecha": hoy.strftime("%Y-%m-%d")})
+                    datos["mantenimientos_mixtos"].append({
+                        "elemento": nm, 
+                        "intervalo_horas": ih, 
+                        "ultima_vez_horas": horas_actuales, 
+                        "intervalo_meses": im, 
+                        "ultima_vez_fecha": hoy.strftime("%Y-%m-%d"),
+                        "proxima_fecha": fl_inicial.strftime("%Y-%m-%d")
+                    })
                     guardar_datos_nube(datos)
                     st.session_state["toast_msg"] = {"texto": "Mantenimiento guardado.", "icono": "✅"}
                     st.rerun()
@@ -310,7 +324,7 @@ else:
                 if is_n and is_n not in datos["checklist_salida"]:
                     datos["checklist_salida"].append(is_n)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Checklist actualizado.", "icono": "✅"}
+                    st.toast("Añadido", icon='✅')
                     st.rerun()
             for idx, item in enumerate(datos["checklist_salida"]):
                 c1, c2 = st.columns([4, 1]); st.write(item)
@@ -321,7 +335,7 @@ else:
                 if ie_n and ie_n not in datos["checklist_entrada"]:
                     datos["checklist_entrada"].append(ie_n)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Checklist actualizado.", "icono": "✅"}
+                    st.toast("Añadido", icon='✅')
                     st.rerun()
             for idx, item in enumerate(datos["checklist_entrada"]):
                 c1, c2 = st.columns([4, 1]); st.write(item)
