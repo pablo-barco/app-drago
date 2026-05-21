@@ -6,7 +6,7 @@ from datetime import datetime, date, timedelta
 # Configuración de la página
 st.set_page_config(page_title="DRAGO - Gestión de Barco Compartido", page_icon="⛵", layout="centered")
 
-# --- SISTEMA DE MENSAJES FLOTANTES (TRUCO POST-RECARGA) ---
+# --- SISTEMA DE MENSAJES FLOTANTES ---
 if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
@@ -25,7 +25,6 @@ except Exception as e:
     st.error(f"Error conectando a la hoja de cálculo: {e}")
     st.stop()
 
-# --- FUNCIONES DE NUBE ---
 def cargar_datos_nube():
     try:
         datos_str = wks.acell("A1").value
@@ -33,10 +32,8 @@ def cargar_datos_nube():
             return json.loads(datos_str)
     except Exception:
         pass
-        
     with open("datos_barco.json", "r", encoding="utf-8") as f:
         datos_base = json.load(f)
-    
     wks.update_acell("A1", json.dumps(datos_base, ensure_ascii=False))
     return datos_base
 
@@ -45,9 +42,13 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
-# --- INYECCIÓN DEL HISTÓRICO COMPLETO 2025 - 2026 ---
-if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) <= 1:
-    st.info("Inyectando histórico de cuentas de 2025 y 2026...")
+if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
+if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
+
+# --- INYECCIÓN DEL HISTÓRICO COMPLETO HASTA MAYO 2026 ---
+# Este seguro fuerza la recarga si no detecta el pago de Juan Carlos de Mayo de 2026
+if not any(i["fecha"] == "2026-05-11" and i["socio"] == "Juan Carlos" for i in datos["finanzas_ingresos"]):
+    st.info("Actualizando base de datos y cuentas hasta Mayo 2026...")
     datos["finanzas_ingresos"] = [
         {"fecha": "2025-01-01", "socio": "Fondo Inicial 2024", "cantidad": 1304.16},
         {"fecha": "2025-01-03", "socio": "Leandro", "cantidad": 100.0},
@@ -109,8 +110,9 @@ if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) <= 1:
         {"fecha": "2026-04-02", "socio": "Leandro", "cantidad": 100.0},
         {"fecha": "2026-04-03", "socio": "Pablo", "cantidad": 100.0},
         {"fecha": "2026-04-13", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2026-04-05", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-04-05", "socio": "Pablo", "cantidad": 100.0}
+        {"fecha": "2026-05-05", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2026-05-05", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2026-05-11", "socio": "Juan Carlos", "cantidad": 100.0}
     ]
     datos["finanzas_gastos"] = [
         {"fecha": "2025-02-23", "concepto": "Tela camarote", "cantidad": 55.96, "pagado_por": "Fondo Común"},
@@ -131,17 +133,12 @@ if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) <= 1:
         {"fecha": "2025-09-04", "concepto": "Licencia pesca", "cantidad": 41.86, "pagado_por": "Fondo Común"},
         {"fecha": "2025-09-19", "concepto": "Escota genova y amantillo", "cantidad": 136.85, "pagado_por": "Fondo Común"},
         {"fecha": "2025-11-10", "concepto": "Varadero amarre", "cantidad": 4533.72, "pagado_por": "Fondo Común"},
-        # Registros 2026
         {"fecha": "2026-03-04", "concepto": "Francobordo bandera, poleas", "cantidad": 92.87, "pagado_por": "Fondo Común"},
         {"fecha": "2026-04-06", "concepto": "Gasoil", "cantidad": 35.00, "pagado_por": "Fondo Común"},
         {"fecha": "2026-04-08", "concepto": "Seguro", "cantidad": 255.57, "pagado_por": "Fondo Común"}
     ]
     guardar_datos_nube(datos)
-# -----------------------------------------------------
-
-# PARCHE DE ACTUALIZACIÓN V2.0: Añadimos las variables de finanzas si no existen en la nube
-if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
-if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
+# -------------------------------------------------------------------
 
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
@@ -181,7 +178,6 @@ else:
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    # NUEVA PESTAÑA AÑADIDA PARA CUENTAS
     tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"])
     
     with tab1:
@@ -207,13 +203,9 @@ else:
     
             col_texto, col_boton = st.columns([3, 2]) 
             with col_texto:
-                if vence: 
-                    st.error(f"🔴 **{maint['elemento']}**: VENCIDO")
-                elif proximo: 
-                    st.warning(f"🟡 **{maint['elemento']}**: Próximo a vencer")
-                else: 
-                    st.success(f"🟢 **{maint['elemento']}**: Al día")
-                
+                if vence: st.error(f"🔴 **{maint['elemento']}**: VENCIDO")
+                elif proximo: st.warning(f"🟡 **{maint['elemento']}**: Próximo a vencer")
+                else: st.success(f"🟢 **{maint['elemento']}**: Al día")
                 st.caption(f"📅 Fecha límite: **{fecha_ver}** (o a las **{maint['ultima_vez_horas'] + maint['intervalo_horas']} hrs**)")
                 
             with col_boton:
@@ -248,13 +240,9 @@ else:
             
             col_txt, col_btn = st.columns([3, 2])
             with col_txt:
-                if dias_pure < 0: 
-                    st.error(f"🔴 **{item['elemento']}**: ¡CADUCADO!")
-                elif dias_pure <= 30: 
-                    st.warning(f"🟡 **{item['elemento']}**: Caduca pronto")
-                else: 
-                    st.success(f"🟢 **{item['elemento']}**: OK")
-                
+                if dias_pure < 0: st.error(f"🔴 **{item['elemento']}**: ¡CADUCADO!")
+                elif dias_pure <= 30: st.warning(f"🟡 **{item['elemento']}**: Caduca pronto")
+                else: st.success(f"🟢 **{item['elemento']}**: OK")
                 st.caption(f"📅 Caducidad: **{fecha_cad_ver}** (Faltan {max(0, dias_pure)} días)")
                 
             with col_btn:
@@ -299,7 +287,6 @@ else:
             st.subheader("🛫 Salida")
             for j, elemento_s in enumerate(datos["checklist_salida"]):
                 st.checkbox(elemento_s, key=f"check_live_s_{j}")
-            
             st.write("") 
             if st.button("✅ Registrar Salida", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "✔️ Checklist Salida completado", "horas": horas_actuales})
@@ -314,7 +301,6 @@ else:
             st.subheader("🛬 Llegada")
             for k, elemento_e in enumerate(datos["checklist_entrada"]):
                 st.checkbox(elemento_e, key=f"check_live_e_{k}")
-            
             st.write("") 
             if st.button("✅ Registrar Llegada", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "✔️ Checklist Llegada completado", "horas": horas_actuales})
@@ -332,45 +318,51 @@ else:
             st.markdown(f"**[{registro.get('fecha')}]** - *{registro.get('usuario')}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
             st.markdown("---")
             
-    # --- NUEVA PESTAÑA 5: FINANZAS ---
+    # --- PESTAÑA 5: FINANZAS DE PRECISIÓN ---
     with tab5:
         st.header("💶 Estado de Cuentas")
 
-        # Cálculos Matemáticos
         gastos_totales = sum(g["cantidad"] for g in datos["finanzas_gastos"])
         ingresos_totales = sum(i["cantidad"] for i in datos["finanzas_ingresos"])
         gastos_bote = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == "Fondo Común")
-
         saldo_bote = ingresos_totales - gastos_bote
-        num_socios = len(datos["socios"])
-        gasto_por_socio = gastos_totales / num_socios if num_socios > 0 else 0
 
-        # Tarjeta principal
+        # Target general (100€/mes desde Ene 25 + 720€ de derrama)
+        meses_transcurridos = (hoy.year - 2025) * 12 + hoy.month
+        obligacion_total_teorica = (meses_transcurridos * 100.0) + 720.0
+
         st.metric("💰 Dinero actual en el Bote Común", f"{saldo_bote:.2f} €")
-        st.caption(f"Gasto total histórico del barco: **{gastos_totales:.2f} €** | Gasto teórico por socio: **{gasto_por_socio:.2f} €**")
+        st.caption(f"Fondo obligatorio teórico acumulado por socio activo hasta hoy: **{obligacion_total_teorica:.2f} €**")
 
         st.markdown("---")
-        st.subheader("⚖️ Balance de Socios (Compensación)")
-        st.write("*(En verde: el barco le debe dinero. En rojo: debe dinero al barco)*")
+        st.subheader("⚖️ Estado de Deuda de los Socios")
+        st.write("*(En rojo: lo que debe ingresar ya. En verde: al día)*")
+
+        # COMPENSADOR HISTÓRICO: Ajusta matemáticamente el crédito de Justo y Rubén 
+        # sin meter dinero fantasma en el Bote de la aplicación.
+        ajustes_historicos = {
+            "Justo": 556.94,
+            "Rubén": 200.00
+        }
 
         for socio in datos["socios"]:
-            # Sumamos lo que el socio ingresó al bote + lo que pagó directamente de su bolsillo
             aportado_bote = sum(i["cantidad"] for i in datos["finanzas_ingresos"] if i["socio"] == socio)
             pagado_directo = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == socio)
-            total_aportado = aportado_bote + pagado_directo
             
-            balance = total_aportado - gasto_por_socio
+            # El saldo total suma lo que han pagado + el ajuste invisible si lo tienen
+            total_aportado_real = aportado_bote + pagado_directo
+            credito_total = total_aportado_real + ajustes_historicos.get(socio, 0.0)
+            
+            balance_socio = credito_total - obligacion_total_teorica
 
             col_socio, col_bal = st.columns([3, 1])
             with col_socio:
-                st.write(f"**{socio}** (Aportó en total: {total_aportado:.2f}€)")
+                st.write(f"**{socio}**")
             with col_bal:
-                if balance > 0.01:
-                    st.success(f"+{balance:.2f}€")
-                elif balance < -0.01:
-                    st.error(f"{balance:.2f}€")
+                if balance_socio >= -0.01:
+                    st.success("Al día 👍")
                 else:
-                    st.info("0.00€")
+                    st.error(f"Debe {abs(balance_socio):.2f} €")
 
         st.markdown("---")
         
@@ -435,7 +427,6 @@ else:
                     st.session_state["toast_msg"] = {"texto": "Ingreso eliminado.", "icono": "🗑️"}
                     st.rerun()
     
-    # --- PESTAÑA 6: PANEL DE CONTROL ---
     with tab6:
         st.header("⚙️ Final de Navegación")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
