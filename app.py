@@ -157,7 +157,7 @@ else:
             guardar_datos_nube(datos)
             st.rerun()
     
-    # PESTAÑA 3: CHECKLISTS
+# PESTAÑA 3: CHECKLISTS CON VALIDACIÓN
     with tab3:
         st.header("📝 Listas de Verificación de Seguridad")
         chk_salida, chk_entrada = st.columns(2)
@@ -171,8 +171,10 @@ else:
             if st.button("✅ Registrar Salida en Historial", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "Completado: Checklist Antes de Zarpar", "horas": horas_actuales})
                 guardar_datos_nube(datos)
+                # NUEVO MÉTODO PARA LIMPIAR: Borramos la memoria
                 for j in range(len(datos["checklist_salida"])):
-                    st.session_state[f"check_live_s_{j}"] = False
+                    if f"check_live_s_{j}" in st.session_state:
+                        del st.session_state[f"check_live_s_{j}"]
                 st.success("¡Salida registrada!")
                 st.rerun()
 
@@ -185,8 +187,10 @@ else:
             if st.button("✅ Registrar Llegada en Historial", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "Completado: Checklist Al Llegar a Puerto", "horas": horas_actuales})
                 guardar_datos_nube(datos)
+                # NUEVO MÉTODO PARA LIMPIAR: Borramos la memoria
                 for k in range(len(datos["checklist_entrada"])):
-                    st.session_state[f"check_live_e_{k}"] = False
+                    if f"check_live_e_{k}" in st.session_state:
+                        del st.session_state[f"check_live_e_{k}"]
                 st.success("¡Llegada registrada!")
                 st.rerun()
     
