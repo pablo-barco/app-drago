@@ -45,6 +45,81 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
+# --- INYECCIÓN DEL HISTÓRICO 2025 ---
+if "finanzas_ingresos" not in datos or len(datos["finanzas_ingresos"]) == 0:
+    st.info("Inyectando datos de 2025...")
+    datos["finanzas_ingresos"] = [
+        {"fecha": "2025-01-01", "socio": "Fondo Inicial 2024", "cantidad": 1304.16},
+        {"fecha": "2025-01-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-01-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-01-14", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-02-04", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-02-04", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-02-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-03-04", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-03-04", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-03-04", "socio": "Rubén", "cantidad": 400.0},
+        {"fecha": "2025-03-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-04-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-04-02", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-04-14", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-05-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-05-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-05-13", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-05-21", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-05-22", "socio": "Justo", "cantidad": 843.06},
+        {"fecha": "2025-06-03", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-06-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-06-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-06-30", "socio": "Rubén", "cantidad": 300.0},
+        {"fecha": "2025-07-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-07-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-07-12", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-07-14", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-08-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-08-05", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-08-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-09-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-09-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-09-12", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-10-01", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-10-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-10-03", "socio": "Rubén", "cantidad": 1020.0},
+        {"fecha": "2025-10-03", "socio": "Pablo", "cantidad": 520.0},
+        {"fecha": "2025-10-04", "socio": "Leandro", "cantidad": 720.0},
+        {"fecha": "2025-10-08", "socio": "Justo", "cantidad": 720.0},
+        {"fecha": "2025-10-08", "socio": "Juan Carlos", "cantidad": 720.0},
+        {"fecha": "2025-10-13", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-11-04", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-11-04", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-11-11", "socio": "Juan Carlos", "cantidad": 100.0},
+        {"fecha": "2025-12-02", "socio": "Leandro", "cantidad": 100.0},
+        {"fecha": "2025-12-03", "socio": "Pablo", "cantidad": 100.0},
+        {"fecha": "2025-12-11", "socio": "Juan Carlos", "cantidad": 100.0}
+    ]
+    datos["finanzas_gastos"] = [
+        {"fecha": "2025-02-23", "concepto": "Tela camarote", "cantidad": 55.96, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-04-22", "concepto": "Seguro", "cantidad": 255.57, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-04-29", "concepto": "Batería motor", "cantidad": 99.00, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-05-06", "concepto": "50% varadero patente", "cantidad": 446.00, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-05-12", "concepto": "Recibo varadero patente (RESTO)", "cantidad": 446.01, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-05-22", "concepto": "Molinete", "cantidad": 843.06, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-05-27", "concepto": "Francobordo, pulsador, boza y filtro bomba", "cantidad": 54.31, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-05-28", "concepto": "50% pago toldos", "cantidad": 1288.65, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-07-10", "concepto": "Resto patente varadero", "cantidad": 328.29, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-07-10", "concepto": "Bandera", "cantidad": 9.99, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-07-10", "concepto": "Colchoneta e hinchador", "cantidad": 87.93, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-07-10", "concepto": "Placa veleta y extintor", "cantidad": 132.00, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-07-14", "concepto": "Resto toldo bimini", "cantidad": 665.50, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-08-05", "concepto": "Gasoil", "cantidad": 60.00, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-09-03", "concepto": "Foco mastil", "cantidad": 40.85, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-09-04", "concepto": "Licencia pesca", "cantidad": 41.86, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-09-19", "concepto": "Escota genova y amantillo", "cantidad": 136.85, "pagado_por": "Fondo Común"},
+        {"fecha": "2025-11-10", "concepto": "Varadero amarre", "cantidad": 4533.72, "pagado_por": "Fondo Común"}
+    ]
+    guardar_datos_nube(datos)
+# ----------------------------------------
+
 # PARCHE DE ACTUALIZACIÓN V2.0: Añadimos las variables de finanzas si no existen en la nube
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
 if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
