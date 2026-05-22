@@ -425,9 +425,25 @@ else:
                     guardar_datos_nube(datos)
                     st.rerun()
 
-        # Desplegable: Checklists
+        # Desplegable: Checklists (¡AQUÍ SE AÑADEN LAS CAJAS DE TEXTO QUE FALTABAN!)
         with st.expander("📝 Checklists"):
+            st.write("**➕ Añadir nuevo elemento a la Checklist:**")
+            nuevo_item_chk = st.text_input("Nombre del nuevo punto de control (ej. Abrir grifo de fondo):", key="panel_add_chk_item")
+            tipo_chk = st.selectbox("¿A qué lista corresponde?:", ["🛫 Lista de Salida", "🛬 Lista de Llegada"])
+            if st.button("📝 Agregar Punto de Control", use_container_width=True):
+                if nuevo_item_chk:
+                    if "Salida" in tipo_chk:
+                        datos["checklist_salida"].append(nuevo_item_chk)
+                    else:
+                        datos["checklist_entrada"].append(nuevo_item_chk)
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": f"Punto añadido a la checklist.", "icono": "📝"}
+                    st.rerun()
+            
+            st.write("---")
             st.write("**Elementos incluidos en la lista de Salida (🛫):**")
+            if not datos["checklist_salida"]:
+                st.caption("No hay elementos registrados en Salida.")
             for idx, item_s in enumerate(datos["checklist_salida"]):
                 col_cs, col_bs = st.columns([4, 1])
                 col_cs.write(f"🛫 {item_s}")
@@ -438,6 +454,8 @@ else:
                     
             st.write("---")
             st.write("**Elementos incluidos en la lista de Llegada (🛬):**")
+            if not datos["checklist_entrada"]:
+                st.caption("No hay elementos registrados en Llegada.")
             for idx, item_e in enumerate(datos["checklist_entrada"]):
                 col_ce, col_be = st.columns([4, 1])
                 col_ce.write(f"🛬 {item_e}")
