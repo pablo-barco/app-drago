@@ -16,7 +16,6 @@ if "toast_msg" in st.session_state:
 def conectar_google():
     credenciales = dict(st.secrets["connections"]["gsheets"])
     gc = gspread.service_account_from_dict(credenciales)
-    # Busca la hoja de pruebas genérica
     return gc.open("datos_barco_demo")
 
 try:
@@ -44,11 +43,14 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
-# Forzar nombres genéricos en la estructura interna de la DEMO
+# Forzar nombres genéricos fijos para la DEMO
 datos["socios"] = ["Socio 1", "Socio 2", "Socio 3"]
 
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
 if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
+if "tareas" not in datos: datos["tareas"] = []
+if "checklist_salida" not in datos: datos["checklist_salida"] = []
+if "checklist_entrada" not in datos: datos["checklist_entrada"] = []
 
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
@@ -211,7 +213,13 @@ else:
         st.header("📜 Historial de Operaciones")
         st.markdown("---")
         for registro in reversed(datos["historial"]):
-            st.markdown(f"**[{registro.get('fecha')}]** - *{registro.get('usuario')}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
+            # ✨ FILTRO DE ANONIMIZACIÓN AUTOMÁTICA DEL HISTORIAL:
+            # Si el usuario que hizo la acción no está entre los genéricos de la demo, se muestra como "Socio Demo"
+            usuario_ver = registro.get("usuario")
+            if usuario_ver not in datos["socios"]:
+                usuario_ver = "Socio Demo"
+                
+            st.markdown(f"**[{registro.get('fecha')}]** - *{usuario_ver}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
             st.markdown("---")
             
     with tab5:
@@ -222,7 +230,6 @@ else:
         gastos_bote = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == "Fondo Común")
         saldo_bote = ingresos_totales - gastos_bote
 
-        # Target general (100€/mes desde Ene 25 + 720€ de derrama)
         meses_transcurridos = (hoy.year - 2025) * 12 + hoy.month
         obligacion_total_teorica = (meses_transcurridos * 100.0) + 720.0
 
@@ -232,7 +239,6 @@ else:
         st.markdown("---")
         st.subheader("⚖️ Estado de Deuda de los Socios")
 
-        # COMPENSADOR HISTÓRICO ANONIMIZADO
         ajustes_historicos = {"Socio 2": 556.94, "Socio 3": 200.00}
 
         for socio in datos["socios"]:
@@ -319,10 +325,50 @@ else:
                     st.rerun()
     
     with tab6:
-        st.header("⚙️ Final de Navegación")
+        # ✨ RESTAURACIÓN COMPLETA DE LOS MENÚS DEL PANEL DE CONTROL ADAPTADOS A LA DEMO
+        st.header("⚙️ Panel de Control y Configuración")
+        
+        # Bloque 1: Horas del Motor
+        st.subheader("⏱️ Actualizar Odómetro General")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
         if st.button("Actualizar Horas y Guardar"):
             datos["horas_motor"] = horas_input
             guardar_datos_nube(datos)
             st.session_state["toast_msg"] = {"texto": "Horas de motor actualizadas.", "icono": "⏱️"}
             st.rerun()
+            
+        st.markdown("---")
+        
+        # Bloque 2: Gestión de Bricos
+        st.subheader("📋 Añadir Nueva Tarea (Brico)")
+        with st.form("nuevo_brico_form", clear_on_submit=True):
+            nombre_brico = st.text_input("Nombre de la tarea:")
+            prioridad_brico = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"])
+            if st.form_submit_button("🔨 Crear Tarea"):
+                if nombre_brico:
+                    datos["tareas"].append({"nombre": nombre_brico, "prioridad": prioridad_brico, "hecha": False})
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "Tarea añadida al panel.", "icono": "🔨"}
+                    st.rerun()
+                    
+        st.markdown("---")
+        
+        # Bloque 3: Mantenimientos del Motor
+        st.subheader("🔧 Configurar Elementos de Mantenimiento Mixto")
+        with st.form("nuevo_maint_form", clear_on_submit=True):
+            elem_m = st.text_input("Nombre del elemento (ej. Filtro Aire):")
+            int_h = st.number_input("Intervalo de Horas (0 si no aplica):", min_value=0, value=100)
+            int_m = st.number_input("Intervalo de Meses (0 si no aplica):", min_value=0, value=12)
+            if st.form_submit_button("💾 Añadir Mantenimiento"):
+                if elem_m and (int_h > 0 or int_m > 0):
+                    datos["mantenimientos_mixtos"].append({
+                        "elemento": elem_m,
+                        "intervalo_horas": int_h,
+                        "intervalo_meses": int_m,
+                        "ultima_vez_horas": horas_actuales,
+                        "ultima_vez_fecha": hoy.strftime("%Y-%m-%d"),
+                        "proxima_fecha": (hoy + timedelta(days=int_m*30)).strftime("%Y-%m-%d")
+                    })
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "Mantenimiento configurado.", "icono": "🔧"}
+                    st.rerun()
