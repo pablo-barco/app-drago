@@ -318,7 +318,7 @@ else:
             st.markdown(f"**[{registro.get('fecha')}]** - *{registro.get('usuario')}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
             st.markdown("---")
             
-    # --- PESTAÑA 5: FINANZAS DE PRECISIÓN ---
+   # --- PESTAÑA 5: FINANZAS DE PRECISIÓN ---
     with tab5:
         st.header("💶 Estado de Cuentas")
 
@@ -391,15 +391,19 @@ else:
             with st.expander("📥 Aportación al Bote"):
                 socio_i = st.selectbox("Socio que ingresa dinero:", datos["socios"])
                 cantidad_i = st.number_input("Cantidad (€):", min_value=0.0, step=1.0, key="cant_i")
+                # ✨ NUEVO: Campo de texto para rellenar el motivo del ingreso
+                concepto_i = st.text_input("Concepto (ej. Cuota mayo, Derrama...):", value="Cuota mensual")
                 
                 if st.button("Guardar Ingreso"):
                     if cantidad_i > 0:
                         datos["finanzas_ingresos"].append({
                             "fecha": hoy.strftime("%Y-%m-%d"),
                             "socio": socio_i,
-                            "cantidad": float(cantidad_i)
+                            "cantidad": float(cantidad_i),
+                            "concepto": concepto_i  # ✨ NUEVO: Se guarda en los datos de finanzas
                         })
-                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso al bote de {socio_i} ({cantidad_i}€)", "horas": horas_actuales})
+                        # El concepto también se añade al historial general del barco para que se lea bien
+                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso de {socio_i} ({cantidad_i}€) - Motivo: {concepto_i}", "horas": horas_actuales})
                         guardar_datos_nube(datos)
                         st.session_state["toast_msg"] = {"texto": "Ingreso registrado con éxito.", "icono": "📥"}
                         st.rerun()
@@ -420,7 +424,9 @@ else:
             st.write("🟢 **Aportaciones al Bote Registradas:**")
             for idx, i in enumerate(datos["finanzas_ingresos"]):
                 ci1, ci2 = st.columns([4, 1])
-                ci1.write(f"_{i['fecha']}_ - {i['socio']}: **{i['cantidad']}€**")
+                # ✨ MEJORA: Si el ingreso viejo no tiene concepto guardado, pone "Aportación" por defecto
+                det_concepto = i.get("concepto", "Aportación")
+                ci1.write(f"_{i['fecha']}_ - {i['socio']}: **{i['cantidad']}€** ({det_concepto})")
                 if ci2.button("🗑️", key=f"del_i_{idx}"):
                     datos["finanzas_ingresos"].pop(idx)
                     guardar_datos_nube(datos)
