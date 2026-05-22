@@ -51,6 +51,8 @@ if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
 if "tareas" not in datos: datos["tareas"] = []
 if "checklist_salida" not in datos: datos["checklist_salida"] = []
 if "checklist_entrada" not in datos: datos["checklist_entrada"] = []
+if "mantenimientos_mixtos" not in datos: datos["mantenimientos_mixtos"] = []
+if "caducidades_puras" not in datos: datos["caducidades_puras"] = []
 
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
@@ -213,8 +215,6 @@ else:
         st.header("📜 Historial de Operaciones")
         st.markdown("---")
         for registro in reversed(datos["historial"]):
-            # ✨ FILTRO DE ANONIMIZACIÓN AUTOMÁTICA DEL HISTORIAL:
-            # Si el usuario que hizo la acción no está entre los genéricos de la demo, se muestra como "Socio Demo"
             usuario_ver = registro.get("usuario")
             if usuario_ver not in datos["socios"]:
                 usuario_ver = "Socio Demo"
@@ -324,7 +324,7 @@ else:
                     guardar_datos_nube(datos)
                     st.rerun()
     
-   with tab6:
+    with tab6:
         st.header("⚙️ Panel de Control y Configuración")
         
         # Bloque 1: Horas del Motor (Odómetro)
@@ -338,7 +338,7 @@ else:
             
         st.markdown("---")
         
-        # --- SECCIÓN: GESTIÓN DE CONTROLES (TAL CUAL TU CAPTURA) ---
+        # --- SECCIÓN: GESTIÓN DE CONTROLES ---
         st.subheader("➕ Gestión de Controles")
         
         # Desplegable: Tareas
@@ -448,7 +448,7 @@ else:
 
         st.markdown("---")
         
-        # --- SECCIÓN: GESTIÓN DE LA TRIPULACIÓN (TAL CUAL TU CAPTURA) ---
+        # --- SECCIÓN: GESTIÓN DE LA TRIPULACIÓN ---
         st.subheader("👥 Gestión de la Tripulación")
         
         with st.expander("👥 Configuración socios"):
