@@ -325,11 +325,10 @@ else:
                     st.rerun()
     
     with tab6:
-        # ✨ RESTAURACIÓN COMPLETA DE LOS MENÚS DEL PANEL DE CONTROL ADAPTADOS A LA DEMO
         st.header("⚙️ Panel de Control y Configuración")
         
         # Bloque 1: Horas del Motor
-        st.subheader("⏱️ Actualizar Odómetro General")
+        st.subheader("⏱️ Odómetro General")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
         if st.button("Actualizar Horas y Guardar"):
             datos["horas_motor"] = horas_input
@@ -339,27 +338,36 @@ else:
             
         st.markdown("---")
         
-        # Bloque 2: Gestión de Bricos
-        st.subheader("📋 Añadir Nueva Tarea (Brico)")
-        with st.form("nuevo_brico_form", clear_on_submit=True):
-            nombre_brico = st.text_input("Nombre de la tarea:")
-            prioridad_brico = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"])
-            if st.form_submit_button("🔨 Crear Tarea"):
+        # Bloque 2: Gestión de Bricos (Igual que tu captura)
+        with st.expander("⚙️ Gestión de Bricos"):
+            st.write("**Añadir nueva tarea:**")
+            nombre_brico = st.text_input("Nombre de la tarea:", key="add_brico_name")
+            prioridad_brico = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"], key="add_brico_prio")
+            if st.button("🔨 Crear Tarea", use_container_width=True):
                 if nombre_brico:
                     datos["tareas"].append({"nombre": nombre_brico, "prioridad": prioridad_brico, "hecha": False})
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Tarea añadida al panel.", "icono": "🔨"}
+                    st.session_state["toast_msg"] = {"texto": "Tarea añadida.", "icono": "🔨"}
+                    st.rerun()
+            
+            st.write("---")
+            st.write("**Eliminar tareas activas:**")
+            for idx, tarea in enumerate(datos["tareas"]):
+                col_t, col_b = st.columns([4, 1])
+                estado_t = "✅ Hecha" if tarea["hecha"] else "⏳ Pendiente"
+                col_t.write(f"🔹 {tarea['nombre']} ({estado_t})")
+                if col_b.button("🗑️", key=f"del_tarea_{idx}"):
+                    datos["tareas"].pop(idx)
+                    guardar_datos_nube(datos)
                     st.rerun()
                     
-        st.markdown("---")
-        
-        # Bloque 3: Mantenimientos del Motor
-        st.subheader("🔧 Configurar Elementos de Mantenimiento Mixto")
-        with st.form("nuevo_maint_form", clear_on_submit=True):
+        # Bloque 3: Mantenimientos del Motor (Igual que tu captura)
+        with st.expander("⚙️ Gestión de Mantenimientos"):
+            st.write("**Añadir nuevo mantenimiento crítico:**")
             elem_m = st.text_input("Nombre del elemento (ej. Filtro Aire):")
             int_h = st.number_input("Intervalo de Horas (0 si no aplica):", min_value=0, value=100)
             int_m = st.number_input("Intervalo de Meses (0 si no aplica):", min_value=0, value=12)
-            if st.form_submit_button("💾 Añadir Mantenimiento"):
+            if st.button("💾 Añadir Mantenimiento", use_container_width=True):
                 if elem_m and (int_h > 0 or int_m > 0):
                     datos["mantenimientos_mixtos"].append({
                         "elemento": elem_m,
@@ -371,4 +379,39 @@ else:
                     })
                     guardar_datos_nube(datos)
                     st.session_state["toast_msg"] = {"texto": "Mantenimiento configurado.", "icono": "🔧"}
+                    st.rerun()
+            
+            st.write("---")
+            st.write("**Eliminar mantenimientos existentes:**")
+            for idx, maint in enumerate(datos["mantenimientos_mixtos"]):
+                col_m, col_b = st.columns([4, 1])
+                col_m.write(f"🔧 {maint['elemento']} (Cada {maint['intervalo_horas']}h / {maint['intervalo_meses']} meses)")
+                if col_b.button("🗑️", key=f"del_maint_{idx}"):
+                    datos["mantenimientos_mixtos"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
+
+        # Bloque 4: Caducidades de Seguridad (Igual que tu captura)
+        with st.expander("⚙️ Gestión de Elementos de Seguridad"):
+            st.write("**Añadir nuevo elemento de seguridad:**")
+            elem_c = st.text_input("Nombre del elemento (ej. Bengalas):", key="add_cad_name")
+            fecha_c = st.date_input("Fecha de caducidad actual:", value=hoy, key="add_cad_date")
+            if st.button("🧯 Añadir Elemento", use_container_width=True):
+                if elem_c:
+                    datos["caducidades_puras"].append({
+                        "elemento": elem_c,
+                        "fecha_caducidad": fecha_c.strftime("%Y-%m-%d")
+                    })
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "Elemento añadido.", "icono": "🧯"}
+                    st.rerun()
+            
+            st.write("---")
+            st.write("**Eliminar elementos de seguridad:**")
+            for idx, item in enumerate(datos["caducidades_puras"]):
+                col_c, col_b = st.columns([4, 1])
+                col_c.write(f"🧯 {item['elemento']} (Caduca: {item['fecha_caducidad']})")
+                if col_b.button("🗑️", key=f"del_cad_{idx}"):
+                    datos["caducidades_puras"].pop(idx)
+                    guardar_datos_nube(datos)
                     st.rerun()
