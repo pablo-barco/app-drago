@@ -11,13 +11,23 @@ if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN A GOOGLE SHEETS (REPARADA PARA PRODUCCIÓN) ---
+# --- CONEXIÓN A GOOGLE SHEETS (BLINDADA CONTRA RESPUESTAS HTTP) ---
 @st.cache_resource
 def conectar_google():
-    # Volvemos al método de producción directo usando service_account_from_dict
-    credenciales = dict(st.secrets["connections"]["gsheets"])
-    gc = gspread.service_account_from_dict(credenciales)
-    return gc.open("datos_barco") 
+    # Extraemos solo las claves puras del JSON de Google de manera segura
+    secrets_raw = st.secrets["connections"]["gsheets"]
+    
+    campos_validos = [
+        "type", "project_id", "private_key_id", "private_key", 
+        "client_email", "client_id", "auth_uri", "token_uri", 
+        "auth_provider_x509_cert_url", "client_x509_cert_url", "universe_domain"
+    ]
+    
+    # Creamos el diccionario limpio filtrando cualquier metadato HTTP residual o respuesta 200
+    credenciales_limpias = {k: secrets_raw[k] for k in campos_validos if k in secrets_raw}
+    
+    gc = gspread.service_account_from_dict(credenciales_limpias)
+    return gc.open("datos_barco") # Conecta a tu hoja de producción real de El Drago
 
 try:
     sh = conectar_google()
@@ -85,8 +95,10 @@ else:
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    # ✨ CAMBIO DE ORDEN: Colocamos tab_res justo en segunda posición
-    tab1, tab_res, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Mandos", "📅 Reservas", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"])
+    # --- PESTAÑAS (Reservas en segunda posición, antes de Bricos) ---
+    tab1, tab_res, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Mandos", "📅 Reservas", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"
+    ])
     
     with tab1:
         st.header("⏱️ Estado del Motor")
