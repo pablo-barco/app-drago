@@ -4,25 +4,25 @@ import gspread
 from datetime import datetime, date, timedelta
 
 # Configuración de la página
-st.set_page_config(page_title="DRAGO - Gestión de Barco Compartido", page_icon="⛵", layout="centered")
+st.set_page_config(page_title="EL DRAGO - Gestión de Barco", page_icon="⛵", layout="centered")
 
 # --- SISTEMA DE MENSAJES FLOTANTES ---
 if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN A GOOGLE SHEETS ---
+# --- CONEXIÓN A GOOGLE SHEETS (VERSION REAL - EL DRAGO) ---
 @st.cache_resource
 def conectar_google():
     credenciales = dict(st.secrets["connections"]["gsheets"])
     gc = gspread.service_account_from_dict(credenciales)
-    return gc.open("datos_barco_cloud")
+    return gc.open("datos_barco") # Conecta a tu hoja de producción real
 
 try:
     sh = conectar_google()
     wks = sh.worksheet("config")
 except Exception as e:
-    st.error(f"Error conectando a la hoja de cálculo: {e}")
+    st.error(f"Error conectando a la hoja de cálculo de El Drago: {e}")
     st.stop()
 
 def cargar_datos_nube():
@@ -42,114 +42,26 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
+# Asegurar estructuras de datos limpias para los nuevos módulos si no existen
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
 if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
-
-# --- INYECCIÓN DEL HISTÓRICO COMPLETO HASTA MAYO 2026 ---
-# Este seguro fuerza la recarga si no detecta el pago de Juan Carlos de Mayo de 2026
-if not any(i["fecha"] == "2026-05-11" and i["socio"] == "Juan Carlos" for i in datos["finanzas_ingresos"]):
-    st.info("Actualizando base de datos y cuentas hasta Mayo 2026...")
-    datos["finanzas_ingresos"] = [
-        {"fecha": "2025-01-01", "socio": "Fondo Inicial 2024", "cantidad": 1304.16},
-        {"fecha": "2025-01-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-01-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-01-14", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-02-04", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-02-04", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-02-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-03-04", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-03-04", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-03-04", "socio": "Rubén", "cantidad": 400.0},
-        {"fecha": "2025-03-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-04-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-04-02", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-04-14", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-05-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-05-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-05-13", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-05-21", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-05-22", "socio": "Justo", "cantidad": 843.06},
-        {"fecha": "2025-06-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-06-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-06-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-06-30", "socio": "Rubén", "cantidad": 300.0},
-        {"fecha": "2025-07-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-07-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-07-12", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-07-14", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-08-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-08-05", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-08-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-09-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-09-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-09-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-10-01", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-10-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-10-03", "socio": "Rubén", "cantidad": 1020.0},
-        {"fecha": "2025-10-03", "socio": "Pablo", "cantidad": 520.0},
-        {"fecha": "2025-10-04", "socio": "Leandro", "cantidad": 720.0},
-        {"fecha": "2025-10-08", "socio": "Justo", "cantidad": 720.0},
-        {"fecha": "2025-10-08", "socio": "Juan Carlos", "cantidad": 720.0},
-        {"fecha": "2025-10-13", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-11-04", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-11-04", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-11-11", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2025-12-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2025-12-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2025-12-11", "socio": "Juan Carlos", "cantidad": 100.0},
-        # Registros 2026
-        {"fecha": "2026-01-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-01-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2026-01-12", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2026-02-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-02-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2026-02-11", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2026-03-03", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-03-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2026-03-11", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2026-04-02", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-04-03", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2026-04-13", "socio": "Juan Carlos", "cantidad": 100.0},
-        {"fecha": "2026-05-05", "socio": "Leandro", "cantidad": 100.0},
-        {"fecha": "2026-05-05", "socio": "Pablo", "cantidad": 100.0},
-        {"fecha": "2026-05-11", "socio": "Juan Carlos", "cantidad": 100.0}
-    ]
-    datos["finanzas_gastos"] = [
-        {"fecha": "2025-02-23", "concepto": "Tela camarote", "cantidad": 55.96, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-04-22", "concepto": "Seguro", "cantidad": 255.57, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-04-29", "concepto": "Batería motor", "cantidad": 99.00, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-05-06", "concepto": "50% varadero patente", "cantidad": 446.00, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-05-12", "concepto": "Recibo varadero patente (RESTO)", "cantidad": 446.01, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-05-22", "concepto": "Molinete", "cantidad": 843.06, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-05-27", "concepto": "Francobordo, pulsador, boza y filtro bomba", "cantidad": 54.31, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-05-28", "concepto": "50% pago toldos", "cantidad": 1288.65, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-07-10", "concepto": "Resto patente varadero", "cantidad": 328.29, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-07-10", "concepto": "Bandera", "cantidad": 9.99, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-07-10", "concepto": "Colchoneta e hinchador", "cantidad": 87.93, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-07-10", "concepto": "Placa veleta y extintor", "cantidad": 132.00, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-07-14", "concepto": "Resto toldo bimini", "cantidad": 665.50, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-08-05", "concepto": "Gasoil", "cantidad": 60.00, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-09-03", "concepto": "Foco mastil", "cantidad": 40.85, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-09-04", "concepto": "Licencia pesca", "cantidad": 41.86, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-09-19", "concepto": "Escota genova y amantillo", "cantidad": 136.85, "pagado_por": "Fondo Común"},
-        {"fecha": "2025-11-10", "concepto": "Varadero amarre", "cantidad": 4533.72, "pagado_por": "Fondo Común"},
-        {"fecha": "2026-03-04", "concepto": "Francobordo bandera, poleas", "cantidad": 92.87, "pagado_por": "Fondo Común"},
-        {"fecha": "2026-04-06", "concepto": "Gasoil", "cantidad": 35.00, "pagado_por": "Fondo Común"},
-        {"fecha": "2026-04-08", "concepto": "Seguro", "cantidad": 255.57, "pagado_por": "Fondo Común"}
-    ]
-    guardar_datos_nube(datos)
-# -------------------------------------------------------------------
+if "tareas" not in datos: datos["tareas"] = []
+if "checklist_salida" not in datos: datos["checklist_salida"] = []
+if "checklist_entrada" not in datos: datos["checklist_entrada"] = []
+if "mantenimientos_mixtos" not in datos: datos["mantenimientos_mixtos"] = []
+if "caducidades_puras" not in datos: datos["caducidades_puras"] = []
+if "reservas" not in datos: datos["reservas"] = []
 
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
     st.session_state["usuario_actual"] = None
 
 if st.session_state["usuario_actual"] is None:
-    st.title("⚓ DRAGO - Control de Acceso")
+    st.title("⚓ EL DRAGO - Control de Acceso")
     st.markdown("---")
     st.subheader("👤 Identificación de Tripulación")
     
-    usuario_seleccionado = st.selectbox("Selecciona qué socio va a acceder a la app:", datos["socios"])
+    usuario_seleccionado = st.selectbox("Selecciona tu nombre para acceder:", datos["socios"])
     
     if st.button("🚀 Entrar a la Aplicación", use_container_width=True):
         st.session_state["usuario_actual"] = usuario_seleccionado
@@ -159,26 +71,21 @@ if st.session_state["usuario_actual"] is None:
 else:
     usuario_actual = st.session_state["usuario_actual"]
     
-    # --- BARRA LATERAL EMBELLECIDA ---
-    st.sidebar.title("⚓ DRAGO")
-    
-    try:
-        st.sidebar.image("foto_barco.jpg", use_container_width=True)
-    except FileNotFoundError:
-        pass
-
+    # --- BARRA LATERAL ---
+    st.sidebar.title("⚓ EL DRAGO")
     st.sidebar.markdown(f"👤 Socio activo: **{usuario_actual}**")
     if st.sidebar.button("🚪 Cerrar Sesión / Cambiar de Socio"):
         st.session_state["usuario_actual"] = None
         st.rerun()
     st.sidebar.markdown("---")
     
-    st.title("⚓ DRAGO - Gestión de Navegación")
+    st.title("⚓ EL DRAGO - Gestión de Navegación")
     
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"])
+    # ✨ CAMBIO DE ORDEN: Colocamos tab_res justo en segunda posición
+    tab1, tab_res, tab2, tab3, tab4, tab5, tab6 = st.tabs(["📊 Mandos", "📅 Reservas", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"])
     
     with tab1:
         st.header("⏱️ Estado del Motor")
@@ -221,7 +128,7 @@ else:
                         datos["mantenimientos_mixtos"][i]["proxima_fecha"] = nueva_limite.strftime("%Y-%m-%d")
                         guardar_datos_nube(datos)
                         st.session_state[f"conf_maint_{i}"] = False
-                        st.session_state["toast_msg"] = {"texto": "Mantenimiento registrado con nueva fecha límite.", "icono": "🛠️"}
+                        st.session_state["toast_msg"] = {"texto": "Mantenimiento registrado.", "icono": "🛠️"}
                         st.rerun()
                     if c_n.button("❌ No", key=f"n_maint_{i}"):
                         st.session_state[f"conf_maint_{i}"] = False
@@ -264,6 +171,64 @@ else:
                         st.session_state[f"conf_cad_{i}"] = True
                         st.rerun()
             st.markdown("---")
+
+    with tab_res:
+        st.header("📅 Calendario de Reservas")
+        
+        with st.expander("📝 Reservar el Barco", expanded=True):
+            col_f1, col_f2 = st.columns(2)
+            with col_f1:
+                f_ini = st.date_input("Fecha de inicio:", value=hoy, min_value=hoy)
+            with col_f2:
+                f_fin = st.date_input("Fecha de fin:", value=hoy, min_value=f_ini)
+                
+            if st.button("🔒 Confirmar Reserva", use_container_width=True):
+                choque = False
+                for r in datos["reservas"]:
+                    r_ini = datetime.strptime(r["inicio"], "%Y-%m-%d").date()
+                    r_fin = datetime.strptime(r["fin"], "%Y-%m-%d").date()
+                    if not (f_fin < r_ini or f_ini > r_fin):
+                        choque = True
+                        socio_bloqueo = r["socio"]
+                        break
+                
+                if choque:
+                    st.error(f"🔴 No se puede reservar. El barco ya está ocupado por **{socio_bloqueo}** en esas fechas.")
+                else:
+                    datos["reservas"].append({
+                        "socio": usuario_actual,
+                        "inicio": f_ini.strftime("%Y-%m-%d"),
+                        "fin": f_fin.strftime("%Y-%m-%d")
+                    })
+                    datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📅 Reservó el barco del {f_ini.strftime('%d/%m')} al {f_fin.strftime('%d/%m')}", "horas": horas_actuales})
+                    guardar_datos_nube(datos)
+                    st.session_state["toast_msg"] = {"texto": "¡Reserva bloqueada con éxito!", "icono": "📅"}
+                    st.rerun()
+
+        st.markdown("---")
+        st.subheader("📋 Próximas Salidas Programadas")
+        
+        # Limpieza automática de reservas obsoletas
+        datos["reservas"] = [r for r in datos["reservas"] if datetime.strptime(r["fin"], "%Y-%m-%d").date() >= hoy]
+        
+        if not datos["reservas"]:
+            st.info("El barco está totalmente libre. ¡Buen momento para organizar una salida!")
+        else:
+            datos["reservas"].sort(key=lambda x: x["inicio"])
+            for idx, r in enumerate(datos["reservas"]):
+                ini_dt = datetime.strptime(r["inicio"], "%Y-%m-%d").date().strftime("%d/%m/%Y")
+                fin_dt = datetime.strptime(r["fin"], "%Y-%m-%d").date().strftime("%d/%m/%Y")
+                
+                col_r_txt, col_r_btn = st.columns([4, 1])
+                with col_r_txt:
+                    st.write(f"👤 **{r['socio']}**: Del **{ini_dt}** al **{fin_dt}**")
+                with col_r_btn:
+                    if r["socio"] == usuario_actual:
+                        if st.button("🗑️", key=f"del_res_{idx}"):
+                            datos["reservas"].pop(idx)
+                            guardar_datos_nube(datos)
+                            st.session_state["toast_msg"] = {"texto": "Reserva cancelada.", "icono": "🗑️"}
+                            st.rerun()
     
     with tab2:
         st.header("📋 Tareas de Bricolaje")
@@ -276,7 +241,7 @@ else:
                         datos["tareas"][i]["hecha"] = True
                         datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"Completado: {tarea['nombre']}", "horas": horas_actuales})
                         guardar_datos_nube(datos)
-                        st.session_state["toast_msg"] = {"texto": "Tarea completada y archivada.", "icono": "📋"}
+                        st.session_state["toast_msg"] = {"texto": "Tarea completada.", "icono": "📋"}
                         st.rerun()
     
     with tab3:
@@ -287,28 +252,20 @@ else:
             st.subheader("🛫 Salida")
             for j, elemento_s in enumerate(datos["checklist_salida"]):
                 st.checkbox(elemento_s, key=f"check_live_s_{j}")
-            st.write("") 
             if st.button("✅ Registrar Salida", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "✔️ Checklist Salida completado", "horas": horas_actuales})
                 guardar_datos_nube(datos)
-                for j in range(len(datos["checklist_salida"])):
-                    if f"check_live_s_{j}" in st.session_state:
-                        del st.session_state[f"check_live_s_{j}"]
-                st.session_state["toast_msg"] = {"texto": "¡Salida registrada en historial!", "icono": "🛫"}
+                st.session_state["toast_msg"] = {"texto": "¡Salida registrada!", "icono": "🛫"}
                 st.rerun()
 
         with chk_entrada:
             st.subheader("🛬 Llegada")
             for k, elemento_e in enumerate(datos["checklist_entrada"]):
                 st.checkbox(elemento_e, key=f"check_live_e_{k}")
-            st.write("") 
             if st.button("✅ Registrar Llegada", use_container_width=True):
                 datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": "✔️ Checklist Llegada completado", "horas": horas_actuales})
                 guardar_datos_nube(datos)
-                for k in range(len(datos["checklist_entrada"])):
-                    if f"check_live_e_{k}" in st.session_state:
-                        del st.session_state[f"check_live_e_{k}"]
-                st.session_state["toast_msg"] = {"texto": "¡Llegada registrada en historial!", "icono": "🛬"}
+                st.session_state["toast_msg"] = {"texto": "¡Llegada registrada!", "icono": "🛬"}
                 st.rerun()
     
     with tab4:
@@ -318,7 +275,6 @@ else:
             st.markdown(f"**[{registro.get('fecha')}]** - *{registro.get('usuario')}*: **{registro.get('evento')}** ({registro.get('horas')} hrs)")
             st.markdown("---")
             
-   # --- PESTAÑA 5: FINANZAS DE PRECISIÓN ---
     with tab5:
         st.header("💶 Estado de Cuentas")
 
@@ -327,7 +283,6 @@ else:
         gastos_bote = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == "Fondo Común")
         saldo_bote = ingresos_totales - gastos_bote
 
-        # Target general (100€/mes desde Ene 25 + 720€ de derrama)
         meses_transcurridos = (hoy.year - 2025) * 12 + hoy.month
         obligacion_total_teorica = (meses_transcurridos * 100.0) + 720.0
 
@@ -336,23 +291,15 @@ else:
 
         st.markdown("---")
         st.subheader("⚖️ Estado de Deuda de los Socios")
-        st.write("*(En rojo: lo que debe ingresar ya. En verde: al día)*")
 
-        # COMPENSADOR HISTÓRICO: Ajusta matemáticamente el crédito de Justo y Rubén 
-        # sin meter dinero fantasma en el Bote de la aplicación.
-        ajustes_historicos = {
-            "Justo": 556.94,
-            "Rubén": 200.00
-        }
+        ajustes_historicos = {"Socio 2": 556.94, "Socio 3": 200.00}
 
         for socio in datos["socios"]:
             aportado_bote = sum(i["cantidad"] for i in datos["finanzas_ingresos"] if i["socio"] == socio)
             pagado_directo = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == socio)
             
-            # El saldo total suma lo que han pagado + el ajuste invisible si lo tienen
             total_aportado_real = aportado_bote + pagado_directo
             credito_total = total_aportado_real + ajustes_historicos.get(socio, 0.0)
-            
             balance_socio = credito_total - obligacion_total_teorica
 
             col_socio, col_bal = st.columns([3, 1])
@@ -369,7 +316,7 @@ else:
         col_g, col_i = st.columns(2)
         with col_g:
             with st.expander("💸 Registrar Gasto"):
-                concepto_g = st.text_input("Concepto (ej. Aceite motor):")
+                concepto_g = st.text_input("Concepto (ej. Filtro combustible):")
                 cantidad_g = st.number_input("Importe (€):", min_value=0.0, step=1.0)
                 pagador_opciones = ["Fondo Común"] + datos["socios"]
                 pagado_por = st.selectbox("¿Quién lo pagó?:", pagador_opciones)
@@ -382,7 +329,7 @@ else:
                             "cantidad": float(cantidad_g),
                             "pagado_por": pagado_por
                         })
-                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"💸 Gasto: {concepto_g} ({cantidad_g}€ - pagado por {pagado_por})", "horas": horas_actuales})
+                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"💸 Gasto: {concepto_g} ({cantidad_g}€)", "horas": horas_actuales})
                         guardar_datos_nube(datos)
                         st.session_state["toast_msg"] = {"texto": "Gasto registrado con éxito.", "icono": "💸"}
                         st.rerun()
@@ -391,8 +338,7 @@ else:
             with st.expander("📥 Aportación al Bote"):
                 socio_i = st.selectbox("Socio que ingresa dinero:", datos["socios"])
                 cantidad_i = st.number_input("Cantidad (€):", min_value=0.0, step=1.0, key="cant_i")
-                # ✨ NUEVO: Campo de texto para rellenar el motivo del ingreso
-                concepto_i = st.text_input("Concepto (ej. Cuota mayo, Derrama...):", value="Cuota mensual")
+                concepto_i = st.text_input("Concepto (ej. Aportación mensual...):", value=f"Aportación {socio_i}")
                 
                 if st.button("Guardar Ingreso"):
                     if cantidad_i > 0:
@@ -400,10 +346,9 @@ else:
                             "fecha": hoy.strftime("%Y-%m-%d"),
                             "socio": socio_i,
                             "cantidad": float(cantidad_i),
-                            "concepto": concepto_i  # ✨ NUEVO: Se guarda en los datos de finanzas
+                            "concepto": concepto_i
                         })
-                        # El concepto también se añade al historial general del barco para que se lea bien
-                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso de {socio_i} ({cantidad_i}€) - Motivo: {concepto_i}", "horas": horas_actuales})
+                        datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso de {socio_i} ({cantidad_i}€) - {concepto_i}", "horas": horas_actuales})
                         guardar_datos_nube(datos)
                         st.session_state["toast_msg"] = {"texto": "Ingreso registrado con éxito.", "icono": "📥"}
                         st.rerun()
@@ -417,153 +362,156 @@ else:
                 if cg2.button("🗑️", key=f"del_g_{idx}"):
                     datos["finanzas_gastos"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Gasto eliminado.", "icono": "🗑️"}
                     st.rerun()
             
             st.write("---")
             st.write("🟢 **Aportaciones al Bote Registradas:**")
             for idx, i in enumerate(datos["finanzas_ingresos"]):
                 ci1, ci2 = st.columns([4, 1])
-                # ✨ MEJORA: Si el ingreso viejo no tiene concepto guardado, pone "Aportación" por defecto
-                det_concepto = i.get("concepto", "Aportación")
+                det_concepto = i.get("concepto", f"Aportación {i['socio']}")
                 ci1.write(f"_{i['fecha']}_ - {i['socio']}: **{i['cantidad']}€** ({det_concepto})")
                 if ci2.button("🗑️", key=f"del_i_{idx}"):
                     datos["finanzas_ingresos"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Ingreso eliminado.", "icono": "🗑️"}
                     st.rerun()
     
     with tab6:
-        st.header("⚙️ Final de Navegación")
+        st.header("⚙️ Panel de Control y Configuración")
+        
+        st.subheader("⏱️ Odómetro General")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
         if st.button("Actualizar Horas y Guardar"):
-            if horas_input > horas_actuales:
-                datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"⏱️ Fin Navegación: {horas_input - horas_actuales} hrs", "horas": horas_input})
             datos["horas_motor"] = horas_input
             guardar_datos_nube(datos)
             st.session_state["toast_msg"] = {"texto": "Horas de motor actualizadas.", "icono": "⏱️"}
             st.rerun()
             
         st.markdown("---")
+        st.subheader("➕ Gestión de Controles")
         
-        st.header("➕ Gestión de Controles")
         with st.expander("🛠️ Tareas"):
-            nt = st.text_input("Nueva tarea:", key="in_tar")
-            pr = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"], key="sl_tar")
-            if st.button("Añadir", key="bt_tar"):
-                if nt:
-                    datos["tareas"].append({"nombre": nt, "hecha": False, "prioridad": pr})
+            st.write("**Añadir nueva tarea (Brico):**")
+            nombre_brico = st.text_input("Nombre de la tarea:", key="panel_add_brico_name")
+            prioridad_brico = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"], key="panel_add_brico_prio")
+            if st.button("🔨 Crear Tarea", use_container_width=True, key="btn_crear_tarea_panel"):
+                if nombre_brico:
+                    datos["tareas"].append({"nombre": nombre_brico, "prioridad": prioridad_brico, "hecha": False})
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Tarea añadida.", "icono": "✅"}
+                    st.session_state["toast_msg"] = {"texto": "Tarea añadida.", "icono": "🔨"}
                     st.rerun()
-            st.write("**Actuales:**")
-            for idx, tar in enumerate(datos["tareas"]):
-                c1, c2 = st.columns([4, 1])
-                st.write(f"{tar['nombre']} [{tar['prioridad']}]")
-                if c2.button("🗑️", key=f"dt_{idx}"):
+            
+            st.write("---")
+            st.write("**Tareas activas en el sistema:**")
+            if not datos["tareas"]:
+                st.caption("No hay tareas registradas.")
+            for idx, tarea in enumerate(datos["tareas"]):
+                col_t, col_b = st.columns([4, 1])
+                estado_t = "✅ Hecha" if tarea["hecha"] else "⏳ Pendiente"
+                col_t.write(f"🔹 {tarea['nombre']} [{tarea['prioridad']}] ({estado_t})")
+                if col_b.button("🗑️", key=f"panel_del_tarea_{idx}"):
                     datos["tareas"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Tarea borrada.", "icono": "🗑️"}
                     st.rerun()
-
+                    
         with st.expander("📅 Caducidades"):
-            ne = st.text_input("Elemento:", key="in_cad")
-            fc = st.date_input("Caducidad:", value=date.today(), key="da_cad")
-            if st.button("Añadir", key="bt_cad"):
-                if ne:
-                    datos["caducidades_puras"].append({"elemento": ne, "fecha_caducidad": fc.strftime("%Y-%m-%d")})
+            st.write("**Añadir nuevo elemento de seguridad:**")
+            elem_c = st.text_input("Nombre del elemento (ej. Bengalas):", key="panel_add_cad_name")
+            fecha_c = st.date_input("Fecha de caducidad actual:", value=hoy, key="panel_add_cad_date")
+            if st.button("🧯 Añadir Elemento", use_container_width=True, key="btn_add_cad_panel"):
+                if elem_c:
+                    datos["caducidades_puras"].append({
+                        "elemento": elem_c,
+                        "fecha_caducidad": fecha_c.strftime("%Y-%m-%d")
+                    })
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Caducidad añadida.", "icono": "✅"}
+                    st.session_state["toast_msg"] = {"texto": "Elemento de seguridad añadido.", "icono": "🧯"}
                     st.rerun()
-            st.write("**Actuales:**")
+            
+            st.write("---")
+            st.write("**Elementos de seguridad activos:**")
+            if not datos["caducidades_puras"]:
+                st.caption("No hay elementos de seguridad registrados.")
             for idx, item in enumerate(datos["caducidades_puras"]):
-                c1, c2 = st.columns([4, 1])
-                st.write(f"{item['elemento']} ({item['fecha_caducidad']})")
-                if c2.button("🗑️", key=f"dc_{idx}"):
+                col_c, col_b = st.columns([4, 1])
+                col_c.write(f"🧯 {item['elemento']} (Caduca: {item['fecha_caducidad']})")
+                if col_b.button("🗑️", key=f"panel_del_cad_{idx}"):
                     datos["caducidades_puras"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Caducidad borrada.", "icono": "🗑️"}
                     st.rerun()
 
         with st.expander("🔧 Mantenimientos"):
-            nm = st.text_input("Mantenimiento:", key="in_maint")
-            ih = st.number_input("Horas:", value=100, key="nu_h")
-            im = st.number_input("Meses:", value=12, key="nu_m")
-            fl_inicial = st.date_input("Primera fecha límite tope:", value=date.today() + timedelta(days=365), key="nu_fl")
-            if st.button("Guardar", key="bt_maint"):
-                if nm:
+            st.write("**Añadir nuevo mantenimiento crítico del motor:**")
+            elem_m = st.text_input("Nombre del mantenimiento (ej. Rodete de bomba):", key="panel_add_maint_name")
+            int_h = st.number_input("Intervalo de Horas (0 si no aplica):", min_value=0, value=100, key="panel_add_maint_h")
+            int_m = st.number_input("Intervalo de Meses (0 si no aplica):", min_value=0, value=12, key="panel_add_maint_m")
+            if st.button("💾 Añadir Mantenimiento", use_container_width=True, key="btn_add_maint_panel"):
+                if elem_m and (int_h > 0 or int_m > 0):
                     datos["mantenimientos_mixtos"].append({
-                        "elemento": nm, 
-                        "intervalo_horas": ih, 
-                        "ultima_vez_horas": horas_actuales, 
-                        "intervalo_meses": im, 
+                        "elemento": elem_m,
+                        "intervalo_horas": int_h,
+                        "intervalo_meses": int_m,
+                        "ultima_vez_horas": horas_actuales,
                         "ultima_vez_fecha": hoy.strftime("%Y-%m-%d"),
-                        "proxima_fecha": fl_inicial.strftime("%Y-%m-%d")
+                        "proxima_fecha": (hoy + timedelta(days=int_m*30)).strftime("%Y-%m-%d")
                     })
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Mantenimiento guardado.", "icono": "✅"}
+                    st.session_state["toast_msg"] = {"texto": "Mantenimiento motor configurado.", "icono": "🔧"}
                     st.rerun()
-            st.write("**Actuales:**")
+            
+            st.write("---")
+            st.write("**Mantenimientos de motor programados:**")
+            if not datos["mantenimientos_mixtos"]:
+                st.caption("No hay mantenimientos de motor registrados.")
             for idx, maint in enumerate(datos["mantenimientos_mixtos"]):
-                c1, c2 = st.columns([4, 1])
-                st.write(f"{maint['elemento']} ({maint['intervalo_horas']}h/{maint['intervalo_meses']}m)")
-                if c2.button("🗑️", key=f"dm_{idx}"):
+                col_m, col_b = st.columns([4, 1])
+                col_m.write(f"🔧 {maint['elemento']} (Cada {maint['intervalo_horas']}h / {maint['intervalo_meses']} meses)")
+                if col_b.button("🗑️", key=f"panel_del_maint_{idx}"):
                     datos["mantenimientos_mixtos"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "Mantenimiento borrado.", "icono": "🗑️"}
                     st.rerun()
 
         with st.expander("📝 Checklists"):
-            is_n = st.text_input("Añadir Salida:", key="in_ch_s")
-            if st.button("Añadir", key="bt_ch_s"):
-                if is_n and is_n not in datos["checklist_salida"]:
-                    datos["checklist_salida"].append(is_n)
+            st.write("**Añadir nuevo elemento a la Checklist:**")
+            nuevo_item_chk = st.text_input("Nombre del nuevo punto de control:", key="panel_add_chk_item")
+            tipo_chk = st.selectbox("¿A qué lista corresponde?:", ["🛫 Lista de Salida", "🛬 Lista de Llegada"])
+            if st.button("📝 Agregar Punto de Control", use_container_width=True):
+                if nuevo_item_chk:
+                    if "Salida" in tipo_chk:
+                        datos["checklist_salida"].append(nuevo_item_chk)
+                    else:
+                        datos["checklist_entrada"].append(nuevo_item_chk)
                     guardar_datos_nube(datos)
-                    st.toast("Añadido", icon='✅')
+                    st.session_state["toast_msg"] = {"texto": f"Punto añadido a la checklist.", "icono": "📝"}
                     st.rerun()
-            for idx, item in enumerate(datos["checklist_salida"]):
-                c1, c2 = st.columns([4, 1]); st.write(item)
-                if c2.button("🗑️", key=f"ds_{idx}"): datos["checklist_salida"].pop(idx); guardar_datos_nube(datos); st.session_state["toast_msg"] = {"texto": "Elemento borrado.", "icono": "🗑️"}; st.rerun()
+            
             st.write("---")
-            ie_n = st.text_input("Añadir Entrada:", key="in_ch_e")
-            if st.button("Añadir", key="bt_ch_e"):
-                if ie_n and ie_n not in datos["checklist_entrada"]:
-                    datos["checklist_entrada"].append(ie_n)
+            st.write("**Elementos incluidos en la lista de Salida (🛫):**")
+            if not datos["checklist_salida"]:
+                st.caption("No hay elementos registrados en Salida.")
+            for idx, item_s in enumerate(datos["checklist_salida"]):
+                col_cs, col_bs = st.columns([4, 1])
+                col_cs.write(f"🛫 {item_s}")
+                if col_bs.button("🗑️", key=f"panel_del_chks_{idx}"):
+                    datos["checklist_salida"].pop(idx)
                     guardar_datos_nube(datos)
-                    st.toast("Añadido", icon='✅')
                     st.rerun()
-            for idx, item in enumerate(datos["checklist_entrada"]):
-                c1, c2 = st.columns([4, 1]); st.write(item)
-                if c2.button("🗑️", key=f"de_{idx}"): datos["checklist_entrada"].pop(idx); guardar_datos_nube(datos); st.session_state["toast_msg"] = {"texto": "Elemento borrado.", "icono": "🗑️"}; st.rerun()
+                    
+            st.write("---")
+            st.write("**Elementos incluidos en la lista de Llegada (🛬):**")
+            if not datos["checklist_entrada"]:
+                st.caption("No hay elementos registrados en Llegada.")
+            for idx, item_e in enumerate(datos["checklist_entrada"]):
+                col_ce, col_be = st.columns([4, 1])
+                col_ce.write(f"🛬 {item_e}")
+                if col_be.button("🗑️", key=f"panel_del_chke_{idx}"):
+                    datos["checklist_entrada"].pop(idx)
+                    guardar_datos_nube(datos)
+                    st.rerun()
 
         st.markdown("---")
+        st.subheader("👥 Gestión de la Tripulación")
         
-        st.header("👥 Gestión de la Tripulación")
-        with st.expander("Configuración socios"):
-            lista_editada = []
-            for idx, socio in enumerate(datos["socios"]):
-                col1, col2 = st.columns([4, 1])
-                with col1:
-                    nombre_nuevo = st.text_input(f"Socio {idx + 1}", value=socio, key=f"is_{idx}")
-                    if nombre_nuevo.strip(): lista_editada.append(nombre_nuevo.strip())
-                with col2:
-                    st.write("") 
-                    if st.button("🗑️", key=f"dsoc_{idx}"):
-                        datos["socios"].pop(idx); guardar_datos_nube(datos)
-                        if socio == usuario_actual: st.session_state["usuario_actual"] = None
-                        st.session_state["toast_msg"] = {"texto": "Socio eliminado.", "icono": "🗑️"}
-                        st.rerun()
-            
-            if lista_editada != datos["socios"] and len(lista_editada) == len(datos["socios"]):
-                if usuario_actual in datos["socios"]:
-                    idx_actual = datos["socios"].index(usuario_actual)
-                    st.session_state["usuario_actual"] = lista_editada[idx_actual]
-                datos["socios"] = lista_editada; guardar_datos_nube(datos); st.rerun()
-            
-            st.markdown("---")
-            nsn = st.text_input("Nombre del nuevo miembro:")
-            if st.button("Añadir nuevo socio"):
-                if nsn.strip() and nsn.strip() not in datos["socios"]:
-                    datos["socios"].append(nsn.strip()); guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": f"¡Bienvenido a la tripulación, {nsn}!", "icono": "✅"}
-                    st.rerun()
+        with st.expander("👥 Configuración socios"):
+            st.write("**Miembros actuales de la tripulación en El Drago:**")
+            for socio in datos["socios"]:
+                st.write(f"👤 {socio}")
