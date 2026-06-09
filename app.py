@@ -11,9 +11,9 @@ if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN COMPATIBLE REPARADA (EL DRAGO) ---
-@st.cache_resource
+# --- CONEXIÓN DIRECTA (SIN CACHÉ PARA EVITAR BUCLES DE ERROR) ---
 def conectar_google():
+    # Estructura nativa original de El Drago
     credenciales = dict(st.secrets["connections"]["gsheets"])
     gc = gspread.service_account_from_dict(credenciales)
     return gc.open("datos_barco")
@@ -42,7 +42,7 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
-# Inicializar estructuras de datos indispensables si no existen en el JSON de la nube
+# Asegurar estructuras de datos limpias para los nuevos módulos si no existen
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
 if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
 if "tareas" not in datos: datos["tareas"] = []
@@ -84,7 +84,7 @@ else:
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    # --- PESTAÑAS (Módulo de reservas colocado antes de Bricos) ---
+    # --- PESTAÑAS (Reservas en segunda posición) ---
     tab1, tab_res, tab2, tab3, tab4, tab5, tab6 = st.tabs([
         "📊 Mandos", "📅 Reservas", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"
     ])
@@ -210,7 +210,6 @@ else:
         st.markdown("---")
         st.subheader("📋 Próximas Salidas Programadas")
         
-        # Limpieza automática de reservas obsoletas
         datos["reservas"] = [r for r in datos["reservas"] if datetime.strptime(r["fin"], "%Y-%m-%d").date() >= hoy]
         
         if not datos["reservas"]:
@@ -329,7 +328,7 @@ else:
                             "fecha": hoy.strftime("%Y-%m-%d"),
                             "concepto": concepto_g,
                             "cantidad": float(cantidad_g),
-                            "pagado_por": pagador_por
+                            "pagado_por": pagado_por
                         })
                         datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"💸 Gasto: {concepto_g} ({cantidad_g}€)", "horas": horas_actuales})
                         guardar_datos_nube(datos)
