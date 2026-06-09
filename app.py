@@ -11,9 +11,9 @@ if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN DIRECTA (SIN CACHÉ PARA EVITAR BUCLES DE ERROR) ---
+# --- CONEXIÓN COMPATIBLE ORIGINAL ---
+@st.cache_resource
 def conectar_google():
-    # Estructura nativa original de El Drago
     credenciales = dict(st.secrets["connections"]["gsheets"])
     gc = gspread.service_account_from_dict(credenciales)
     return gc.open("datos_barco")
@@ -42,7 +42,7 @@ def guardar_datos_nube(datos):
 
 datos = cargar_datos_nube()
 
-# Asegurar estructuras de datos limpias para los nuevos módulos si no existen
+# Inicializar estructuras esenciales
 if "finanzas_gastos" not in datos: datos["finanzas_gastos"] = []
 if "finanzas_ingresos" not in datos: datos["finanzas_ingresos"] = []
 if "tareas" not in datos: datos["tareas"] = []
@@ -50,7 +50,6 @@ if "checklist_salida" not in datos: datos["checklist_salida"] = []
 if "checklist_entrada" not in datos: datos["checklist_entrada"] = []
 if "mantenimientos_mixtos" not in datos: datos["mantenimientos_mixtos"] = []
 if "caducidades_puras" not in datos: datos["caducidades_puras"] = []
-if "reservas" not in datos: datos["reservas"] = []
 
 # --- CONTROL DE ACCESO ---
 if "usuario_actual" not in st.session_state:
@@ -84,9 +83,9 @@ else:
     hoy = date.today()
     horas_actuales = int(datos["horas_motor"])
     
-    # --- PESTAÑAS (Reservas en segunda posición) ---
-    tab1, tab_res, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-        "📊 Mandos", "📅 Reservas", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"
+    # --- PESTAÑAS ORIGINALES ---
+    tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+        "📊 Mandos", "📋 Bricos", "📝 Checks", "📜 Hist", "💶 Cuentas", "⚙️ Panel"
     ])
     
     with tab1:
@@ -173,63 +172,6 @@ else:
                         st.session_state[f"conf_cad_{i}"] = True
                         st.rerun()
             st.markdown("---")
-
-    with tab_res:
-        st.header("📅 Calendario de Reservas")
-        
-        with st.expander("📝 Reservar el Barco", expanded=True):
-            col_f1, col_f2 = st.columns(2)
-            with col_f1:
-                f_ini = st.date_input("Fecha de inicio:", value=hoy, min_value=hoy)
-            with col_f2:
-                f_fin = st.date_input("Fecha de fin:", value=hoy, min_value=f_ini)
-                
-            if st.button("🔒 Confirmar Reserva", use_container_width=True):
-                choque = False
-                for r in datos["reservas"]:
-                    r_ini = datetime.strptime(r["inicio"], "%Y-%m-%d").date()
-                    r_fin = datetime.strptime(r["fin"], "%Y-%m-%d").date()
-                    if not (f_fin < r_ini or f_ini > r_fin):
-                        choque = True
-                        socio_bloqueo = r["socio"]
-                        break
-                
-                if choque:
-                    st.error(f"🔴 No se puede reservar. El barco ya está ocupado por **{socio_bloqueo}** en esas fechas.")
-                else:
-                    datos["reservas"].append({
-                        "socio": usuario_actual,
-                        "inicio": f_ini.strftime("%Y-%m-%d"),
-                        "fin": f_fin.strftime("%Y-%m-%d")
-                    })
-                    datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📅 Reservó el barco del {f_ini.strftime('%d/%m')} al {f_fin.strftime('%d/%m')}", "horas": horas_actuales})
-                    guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": "¡Reserva bloqueada con éxito!", "icono": "📅"}
-                    st.rerun()
-
-        st.markdown("---")
-        st.subheader("📋 Próximas Salidas Programadas")
-        
-        datos["reservas"] = [r for r in datos["reservas"] if datetime.strptime(r["fin"], "%Y-%m-%d").date() >= hoy]
-        
-        if not datos["reservas"]:
-            st.info("El barco está totalmente libre. ¡Buen momento para organizar una salida!")
-        else:
-            datos["reservas"].sort(key=lambda x: x["inicio"])
-            for idx, r in enumerate(datos["reservas"]):
-                ini_dt = datetime.strptime(r["inicio"], "%Y-%m-%d").date().strftime("%d/%m/%Y")
-                fin_dt = datetime.strptime(r["fin"], "%Y-%m-%d").date().strftime("%d/%m/%Y")
-                
-                col_r_txt, col_r_btn = st.columns([4, 1])
-                with col_r_txt:
-                    st.write(f"👤 **{r['socio']}**: Del **{ini_dt}** al **{fin_dt}**")
-                with col_r_btn:
-                    if r["socio"] == usuario_actual:
-                        if st.button("🗑️", key=f"del_res_{idx}"):
-                            datos["reservas"].pop(idx)
-                            guardar_datos_nube(datos)
-                            st.session_state["toast_msg"] = {"texto": "Reserva cancelada.", "icono": "🗑️"}
-                            st.rerun()
     
     with tab2:
         st.header("📋 Tareas de Bricolaje")
@@ -278,7 +220,6 @@ else:
             
     with tab5:
         st.header("💶 Estado de Cuentas")
-
         gastos_totales = sum(g["cantidad"] for g in datos["finanzas_gastos"])
         ingresos_totales = sum(i["cantidad"] for i in datos["finanzas_ingresos"])
         gastos_bote = sum(g["cantidad"] for g in datos["finanzas_gastos"] if g["pagado_por"] == "Fondo Común")
@@ -304,16 +245,12 @@ else:
             balance_socio = credito_total - obligacion_total_teorica
 
             col_socio, col_bal = st.columns([3, 1])
-            with col_socio:
-                st.write(f"**{socio}**")
+            with col_socio: st.write(f"**{socio}**")
             with col_bal:
-                if balance_socio >= -0.01:
-                    st.success("Al día 👍")
-                else:
-                    st.error(f"Debe {abs(balance_socio):.2f} €")
+                if balance_socio >= -0.01: st.success("Al día 👍")
+                else: st.error(f"Debe {abs(balance_socio):.2f} €")
 
         st.markdown("---")
-        
         col_g, col_i = st.columns(2)
         with col_g:
             with st.expander("💸 Registrar Gasto"):
@@ -324,12 +261,7 @@ else:
                 
                 if st.button("Guardar Gasto"):
                     if concepto_g and cantidad_g > 0:
-                        datos["finanzas_gastos"].append({
-                            "fecha": hoy.strftime("%Y-%m-%d"),
-                            "concepto": concepto_g,
-                            "cantidad": float(cantidad_g),
-                            "pagado_por": pagado_por
-                        })
+                        datos["finanzas_gastos"].append({"fecha": hoy.strftime("%Y-%m-%d"), "concepto": concepto_g, "cantidad": float(cantidad_g), "pagado_por": pagador_por})
                         datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"💸 Gasto: {concepto_g} ({cantidad_g}€)", "horas": horas_actuales})
                         guardar_datos_nube(datos)
                         st.session_state["toast_msg"] = {"texto": "Gasto registrado con éxito.", "icono": "💸"}
@@ -343,12 +275,7 @@ else:
                 
                 if st.button("Guardar Ingreso"):
                     if cantidad_i > 0:
-                        datos["finanzas_ingresos"].append({
-                            "fecha": hoy.strftime("%Y-%m-%d"),
-                            "socio": socio_i,
-                            "cantidad": float(cantidad_i),
-                            "concepto": concepto_i
-                        })
+                        datos["finanzas_ingresos"].append({"fecha": hoy.strftime("%Y-%m-%d"), "socio": socio_i, "cantidad": float(cantidad_i), "concepto": concepto_i})
                         datos["historial"].append({"fecha": hoy.strftime("%Y-%m-%d"), "usuario": usuario_actual, "evento": f"📥 Ingreso de {socio_i} ({cantidad_i}€) - {concepto_i}", "horas": horas_actuales})
                         guardar_datos_nube(datos)
                         st.session_state["toast_msg"] = {"texto": "Ingreso registrado con éxito.", "icono": "📥"}
@@ -378,7 +305,6 @@ else:
     
     with tab6:
         st.header("⚙️ Panel de Control y Configuración")
-        
         st.subheader("⏱️ Odómetro General")
         horas_input = st.number_input("¿Con cuántas horas ha quedado el motor?:", min_value=0, value=horas_actuales)
         if st.button("Actualizar Horas y Guardar"):
@@ -391,7 +317,6 @@ else:
         st.subheader("➕ Gestión de Controles")
         
         with st.expander("🛠️ Tareas"):
-            st.write("**Añadir nueva tarea (Brico):**")
             nombre_brico = st.text_input("Nombre de la tarea:", key="panel_add_brico_name")
             prioridad_brico = st.selectbox("Prioridad:", ["Baja", "Media", "Alta"], key="panel_add_brico_prio")
             if st.button("🔨 Crear Tarea", use_container_width=True, key="btn_crear_tarea_panel"):
@@ -401,10 +326,6 @@ else:
                     st.session_state["toast_msg"] = {"texto": "Tarea añadida.", "icono": "🔨"}
                     st.rerun()
             
-            st.write("---")
-            st.write("**Tareas activas en el sistema:**")
-            if not datos["tareas"]:
-                st.caption("No hay tareas registradas.")
             for idx, tarea in enumerate(datos["tareas"]):
                 col_t, col_b = st.columns([4, 1])
                 estado_t = "✅ Hecha" if tarea["hecha"] else "⏳ Pendiente"
@@ -415,23 +336,15 @@ else:
                     st.rerun()
                     
         with st.expander("📅 Caducidades"):
-            st.write("**Añadir nuevo elemento de seguridad:**")
             elem_c = st.text_input("Nombre del elemento (ej. Bengalas):", key="panel_add_cad_name")
             fecha_c = st.date_input("Fecha de caducidad actual:", value=hoy, key="panel_add_cad_date")
             if st.button("🧯 Añadir Elemento", use_container_width=True, key="btn_add_cad_panel"):
                 if elem_c:
-                    datos["caducidades_puras"].append({
-                        "elemento": elem_c,
-                        "fecha_caducidad": fecha_c.strftime("%Y-%m-%d")
-                    })
+                    datos["caducidades_puras"].append({"elemento": elem_c, "fecha_caducidad": fecha_c.strftime("%Y-%m-%d")})
                     guardar_datos_nube(datos)
                     st.session_state["toast_msg"] = {"texto": "Elemento de seguridad añadido.", "icono": "🧯"}
                     st.rerun()
             
-            st.write("---")
-            st.write("**Elementos de seguridad activos:**")
-            if not datos["caducidades_puras"]:
-                st.caption("No hay elementos de seguridad registrados.")
             for idx, item in enumerate(datos["caducidades_puras"]):
                 col_c, col_b = st.columns([4, 1])
                 col_c.write(f"🧯 {item['elemento']} (Caduca: {item['fecha_caducidad']})")
@@ -441,28 +354,20 @@ else:
                     st.rerun()
 
         with st.expander("🔧 Mantenimientos"):
-            st.write("**Añadir nuevo mantenimiento crítico del motor:**")
             elem_m = st.text_input("Nombre del mantenimiento (ej. Rodete de bomba):", key="panel_add_maint_name")
             int_h = st.number_input("Intervalo de Horas (0 si no aplica):", min_value=0, value=100, key="panel_add_maint_h")
             int_m = st.number_input("Intervalo de Meses (0 si no aplica):", min_value=0, value=12, key="panel_add_maint_m")
             if st.button("💾 Añadir Mantenimiento", use_container_width=True, key="btn_add_maint_panel"):
                 if elem_m and (int_h > 0 or int_m > 0):
                     datos["mantenimientos_mixtos"].append({
-                        "elemento": elem_m,
-                        "intervalo_horas": int_h,
-                        "intervalo_meses": int_m,
-                        "ultima_vez_horas": horas_actuales,
-                        "ultima_vez_fecha": hoy.strftime("%Y-%m-%d"),
+                        "elemento": elem_m, "intervalo_horas": int_h, "intervalo_meses": int_m,
+                        "ultima_vez_horas": horas_actuales, "ultima_vez_fecha": hoy.strftime("%Y-%m-%d"),
                         "proxima_fecha": (hoy + timedelta(days=int_m*30)).strftime("%Y-%m-%d")
                     })
                     guardar_datos_nube(datos)
                     st.session_state["toast_msg"] = {"texto": "Mantenimiento motor configurado.", "icono": "🔧"}
                     st.rerun()
             
-            st.write("---")
-            st.write("**Mantenimientos de motor programados:**")
-            if not datos["mantenimientos_mixtos"]:
-                st.caption("No hay mantenimientos de motor registrados.")
             for idx, maint in enumerate(datos["mantenimientos_mixtos"]):
                 col_m, col_b = st.columns([4, 1])
                 col_m.write(f"🔧 {maint['elemento']} (Cada {maint['intervalo_horas']}h / {maint['intervalo_meses']} meses)")
@@ -472,23 +377,17 @@ else:
                     st.rerun()
 
         with st.expander("📝 Checklists"):
-            st.write("**Añadir nuevo elemento a la Checklist:**")
             nuevo_item_chk = st.text_input("Nombre del nuevo punto de control:", key="panel_add_chk_item")
             tipo_chk = st.selectbox("¿A qué lista corresponde?:", ["🛫 Lista de Salida", "🛬 Lista de Llegada"])
             if st.button("📝 Agregar Punto de Control", use_container_width=True):
                 if nuevo_item_chk:
-                    if "Salida" in tipo_chk:
-                        datos["checklist_salida"].append(nuevo_item_chk)
-                    else:
-                        datos["checklist_entrada"].append(nuevo_item_chk)
+                    if "Salida" in tipo_chk: datos["checklist_salida"].append(nuevo_item_chk)
+                    else: datos["checklist_entrada"].append(nuevo_item_chk)
                     guardar_datos_nube(datos)
-                    st.session_state["toast_msg"] = {"texto": f"Punto añadido a la checklist.", "icono": "📝"}
+                    st.session_state["toast_msg"] = {"texto": "Punto añadido a la checklist.", "icono": "📝"}
                     st.rerun()
             
             st.write("---")
-            st.write("**Elementos incluidos en la lista de Salida (🛫):**")
-            if not datos["checklist_salida"]:
-                st.caption("No hay elementos registrados en Salida.")
             for idx, item_s in enumerate(datos["checklist_salida"]):
                 col_cs, col_bs = st.columns([4, 1])
                 col_cs.write(f"🛫 {item_s}")
@@ -498,9 +397,6 @@ else:
                     st.rerun()
                     
             st.write("---")
-            st.write("**Elementos incluidos en la lista de Llegada (🛬):**")
-            if not datos["checklist_entrada"]:
-                st.caption("No hay elementos registrados en Llegada.")
             for idx, item_e in enumerate(datos["checklist_entrada"]):
                 col_ce, col_be = st.columns([4, 1])
                 col_ce.write(f"🛬 {item_e}")
@@ -511,8 +407,5 @@ else:
 
         st.markdown("---")
         st.subheader("👥 Gestión de la Tripulación")
-        
         with st.expander("👥 Configuración socios"):
-            st.write("**Miembros actuales de la tripulación en El Drago:**")
-            for socio in datos["socios"]:
-                st.write(f"👤 {socio}")
+            for socio in datos["socios"]: st.write(f"👤 {socio}")
