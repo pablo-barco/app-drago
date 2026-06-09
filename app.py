@@ -11,12 +11,13 @@ if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN A GOOGLE SHEETS (VERSION REAL - EL DRAGO) ---
+# --- CONEXIÓN A GOOGLE SHEETS (REPARADA PARA PRODUCCIÓN) ---
 @st.cache_resource
 def conectar_google():
+    # Volvemos al método de producción directo usando service_account_from_dict
     credenciales = dict(st.secrets["connections"]["gsheets"])
     gc = gspread.service_account_from_dict(credenciales)
-    return gc.open("datos_barco") # Conecta a tu hoja de producción real
+    return gc.open("datos_barco") 
 
 try:
     sh = conectar_google()
