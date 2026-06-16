@@ -11,10 +11,11 @@ if "toast_msg" in st.session_state:
     st.toast(st.session_state["toast_msg"]["texto"], icon=st.session_state["toast_msg"]["icono"])
     del st.session_state["toast_msg"]
 
-# --- CONEXIÓN DIRECTA POR ARCHIVO (INMUNE A ERRORES DE TEXTO) ---
+# --- CONEXIÓN ORIGINAL ESTABLE ---
 def conectar_google():
-    # Lee el archivo JSON original directamente desde GitHub sin pasar por la web de Streamlit
-    gc = gspread.service_account(filename="credenciales_google.json")
+    # Recupera las credenciales desde la sección [connections.gsheets] de los Secrets
+    credenciales = dict(st.secrets["connections"]["gsheets"])
+    gc = gspread.service_account_from_dict(credenciales)
     return gc.open("datos_barco")
 
 try:
