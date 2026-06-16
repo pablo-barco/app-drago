@@ -1,0 +1,123 @@
+{
+    "horas_motor": 355,
+    "tareas": [
+        {
+            "nombre": "Revisar prensaestopas",
+            "hecha": false,
+            "prioridad": "Alta"
+        },
+        {
+            "nombre": "Pintar la patente (Antifouling)",
+            "hecha": false,
+            "prioridad": "Media"
+        }
+    ],
+    "mantenimientos_mixtos": [
+        {
+            "elemento": "Aceite de Motor y Filtro",
+            "intervalo_horas": 100,
+            "ultima_vez_horas": 345,
+            "intervalo_meses": 12,
+            "ultima_vez_fecha": "2026-05-19"
+        }
+    ],
+    "caducidades_puras": [
+        {
+            "elemento": "Bengalas de seguridad",
+            "fecha_caducidad": "2028-05-18"
+        },
+        {
+            "elemento": "Botiquín / Medicamentos",
+            "fecha_caducidad": "2028-05-18"
+        },
+        {
+            "elemento": "Bengalas ",
+            "fecha_caducidad": "2026-05-19"
+        },
+        {
+            "elemento": "Bengalas ",
+            "fecha_caducidad": "2026-08-18"
+        }
+    ],
+    "historial": [
+        {
+            "fecha": "2026-05-10",
+            "usuario": "Patrón Base",
+            "evento": "App configurada con éxito",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Socio 1",
+            "evento": "Mantenimiento: Aceite de Motor y Filtro",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Socio 1",
+            "evento": "Renovado: Bengalas de seguridad",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Socio 2",
+            "evento": "Mantenimiento: Aceite de Motor y Filtro",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Socio 2",
+            "evento": "Renovado: Bengalas de seguridad",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Socio 2",
+            "evento": "Renovado: Bengalas de seguridad",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Pablo",
+            "evento": "Renovado: Bengalas de seguridad",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Pablo",
+            "evento": "Mantenimiento: Aceite de Motor y Filtro",
+            "horas": 345
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Pablo",
+            "evento": "Navegación: +10 horas",
+            "horas": 355
+        },
+        {
+            "fecha": "2026-05-19",
+            "usuario": "Pablo",
+            "evento": "Renovado: Botiquín / Medicamentos",
+            "horas": 355
+        }
+    ],
+    "checklist_salida": [
+        "Nivel de aceite de motor OK",
+        "Grifos de fondo ABIERTOS",
+        "Electrónica y radio encendidas",
+        "Cabo de pantalán recogido"
+    ],
+    "checklist_entrada": [
+        "Grifos de fondo CERRADOS",
+        "Baterías / Desconectadores en OFF",
+        "Cable de corriente 220V conectado",
+        "Sentina revisada (Seca)"
+    ],
+    "socios": [
+        "Pablo",
+        "Rubén",
+        "Leandro",
+        "Juan Carlos",
+        "Justo"
+    ]
+}
